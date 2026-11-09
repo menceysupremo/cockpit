@@ -507,7 +507,7 @@ function viewRadar() {
 function addRadar() {
   form('Nuevo en el radar', [
     { name: 'type', label: 'Tipo', type: 'select', options: R_TYPES, value: ui.radarF && ui.radarF !== 'Todo' ? ui.radarF : 'Email' },
-    { name: 'title', label: 'Qué es', required: true, placeholder: 'Ej. Responder a gestoría, cumple de Andrea…' },
+    { name: 'title', label: 'Qué es', required: true, placeholder: 'Ej. Responder a gestoría, cumple de mamá…' },
     { name: 'date', label: 'Fecha (opcional)', type: 'date' },
     { name: 'prio', label: 'Prioridad', type: 'select', options: ['Alta', 'Media', 'Baja'], value: 'Media' },
     { name: 'note', label: 'Nota (opcional)' },
@@ -626,7 +626,6 @@ function importBBVA() {
 }
 
 /* ---------- Gastos: lee el Excel de Drive (Resumen / Plan / Movimientos / Grupos) ---------- */
-const GX_FILE_ID = '1H-Nceg8ssTcb_oFFtOkECPOGjPaX9b-X';
 const gxNum = v => {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   if (typeof v !== 'string') return null;
@@ -705,20 +704,56 @@ function gxPickFile() {
   inp.onchange = async () => { if (!inp.files[0]) return; try { gxIngest(await inp.files[0].arrayBuffer(), inp.files[0].name); } catch (e) { toast(e.message || 'No se pudo leer el Excel'); } };
   inp.click();
 }
+function parseCfg(T) {
+  const rows = a => (a || []).slice(1).filter(r => r && r.some(c => String(c ?? '').trim() !== ''));
+  const n = x => x === '' || x == null ? null : typeof x === 'number' ? x : (v => isNaN(v) ? null : v)(num(String(x)));
+  const cfg = {}; rows(T.Config).forEach(r => { cfg[String(r[0]).trim().toLowerCase()] = r[1]; });
+  const des = {}; rows(T.Desglose).forEach(r => { const k = String(r[0]).trim().toLowerCase(); (des[k] = des[k] || []).push({ n: String(r[1] ?? '').trim(), v: n(r[2]) || 0 }); });
+  const list = rows(T.Metas).map(r => {
+    const name = String(r[0] ?? '').trim(), kind = /saldo/i.test(String(r[2] ?? '')) ? 'saldo' : 'prio';
+    const g = { id: uid(), kind, name, sub: String(r[1] ?? '').trim() };
+    const items = des[name.toLowerCase()]; if (items) g.items = items;
+    const t = n(r[3]); if (t != null) g.target = t;
+    const f = String(r[4] ?? '').trim(); if (f) { if (kind === 'saldo') g.deadline = f; else g.due = f.slice(0, 7); }
+    return g;
+  }).filter(g => g.name);
+  return { baseline: n(cfg.colchon) ?? 0, saldoManual: n(cfg.saldo_manual), ritmoManual: n(cfg.ahorro_mensual_manual), list, gastos: String(cfg.archivo_gastos || '').trim() };
+}
+const GX_CLIENT_ID = '579903878582-fjpq7fvri1b7sjh6rcvd1qd61ai0abuf.apps.googleusercontent.com';
 function gxDrive() {
-  const cfg = S.gxCfg || (S.gxCfg = { clientId: '', fileId: GX_FILE_ID });
-  if (!cfg.clientId) return form('Conectar con Drive', [{ name: 'id', label: 'Client ID de Google (OAuth, tipo «Aplicación web»)', required: true, placeholder: '…apps.googleusercontent.com' }],
-    d => { cfg.clientId = d.id.trim(); save(); gxDrive(); }, { ok: 'Guardar y conectar', text: 'Solo lectura (drive.readonly). El token no se guarda. Si el login de Google no abre en el móvil, usa «Cargar .xlsx».' });
+  const cfg = S.gxCfg || (S.gxCfg = { clientId: '' });
+  if (!cfg.clientId) { cfg.clientId = GX_CLIENT_ID; save(); }
+  if (!cfg.clientId) return form('Conectar con Google', [{ name: 'id', label: 'Client ID de Google (OAuth, tipo «Aplicación web»)', required: true, placeholder: '…apps.googleusercontent.com' }],
+    d => { cfg.clientId = d.id.trim(); save(); gxDrive(); }, { ok: 'Guardar y conectar', text: 'Solo lectura. El token no se guarda. Si el login de Google no abre en el móvil, usa «Cargar .xlsx».' });
   const go = () => google.accounts.oauth2.initTokenClient({
-    client_id: cfg.clientId, scope: 'https://www.googleapis.com/auth/drive.readonly',
-    callback: async r => {
-      if (r.error) return toast('Google: ' + r.error);
-      try { const res = await fetch(`https://www.googleapis.com/drive/v3/files/${cfg.fileId}?alt=media`, { headers: { Authorization: 'Bearer ' + r.access_token } }); if (!res.ok) throw new Error('Drive respondió ' + res.status); gxIngest(await res.arrayBuffer(), 'Drive · Seguimiento de gastos BBVA'); }
-      catch (e) { toast(e.message || 'No se pudo leer Drive'); }
-    }
+    client_id: cfg.clientId, scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly',
+    callback: r => { if (r.error) return toast('Google: ' + r.error); driveSync(r.access_token); }
   }).requestAccessToken();
   if (window.google?.accounts?.oauth2) return go();
   const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = go; s.onerror = () => toast('No se pudo cargar Google (¿sin conexión?)'); document.head.appendChild(s);
+}
+async function driveSync(tok) {
+  const H = { Authorization: 'Bearer ' + tok };
+  const api = async u => { const res = await fetch(u, { headers: H }); if (!res.ok) throw new Error('Google respondió ' + res.status); return res; };
+  const find = async name => { const q = `name contains '${name.replace(/'/g, "\\'")}' and trashed=false`; const j = await (await api('https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime%20desc&fields=files(id,name,mimeType)&q=' + encodeURIComponent(q))).json(); return j.files && j.files[0]; };
+  const msgs = []; let gname = 'Seguimiento de gastos BBVA';
+  try {
+    const cf = await find('Cockpit Config');
+    if (cf) {
+      const rs = ['Config', 'Metas', 'Desglose'].map(t => 'ranges=' + encodeURIComponent(t + '!A1:H200')).join('&');
+      const j = await (await api(`https://sheets.googleapis.com/v4/spreadsheets/${cf.id}/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&${rs}`)).json();
+      const T = {}; (j.valueRanges || []).forEach(v => { T[v.range.split('!')[0].replace(/'/g, '')] = v.values; });
+      const c = parseCfg(T); if (c.gastos) gname = c.gastos;
+      S.metas = { baseline: c.baseline, saldoManual: c.saldoManual, ritmoManual: c.ritmoManual, list: c.list }; save();
+      msgs.push(`${c.list.length} metas`);
+    } else msgs.push('no encuentro la hoja «Cockpit Config»');
+    const xf = await find(gname);
+    if (xf) {
+      const url = xf.mimeType === 'application/vnd.google-apps.spreadsheet' ? `https://www.googleapis.com/drive/v3/files/${xf.id}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet` : `https://www.googleapis.com/drive/v3/files/${xf.id}?alt=media`;
+      gxIngest(await (await api(url)).arrayBuffer(), 'Drive · ' + xf.name); msgs.push('gastos');
+    } else msgs.push(`no encuentro «${gname}»`);
+    render(); toast('Sincronizado: ' + msgs.join(', '));
+  } catch (e) { toast(e.message || 'No se pudo leer Google'); }
 }
 const GX_PROMPT = `Tarea: añadir a mi Excel de Drive «Seguimiento de gastos BBVA (ago-nov 2026).xlsx» (hoja Movimientos) los movimientos NUEVOS de mi banco BBVA. SOLO LECTURA en BBVA.
 
@@ -879,12 +914,7 @@ const monthsTo = (from, iso) => { const t = new Date(iso + 'T12:00'); return Mat
 const longMonth = d => d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
 function ensureMetas() {
   if (!S.metas) {
-    S.metas = { baseline: 6000, saldoManual: null, ritmoManual: null, list: [
-      { id: uid(), kind: 'prio', name: 'Stratocaster de calidad', sub: 'Guitarra eléctrica', target: 900 },
-      { id: uid(), kind: 'prio', name: 'Viaje a Nueva York', sub: '7 días · 2 personas · importe estimado', due: '2027-11', items: [{ n: 'Vuelos', v: 1300 }, { n: 'Hotel', v: 1800 }, { n: 'Comida', v: 1000 }, { n: 'Transporte', v: 120 }, { n: 'Actividades', v: 400 }, { n: 'ESTA y seguro', v: 130 }] },
-      { id: uid(), kind: 'prio', name: 'Regalo a Andrea en Nueva York', sub: '', target: 1000 },
-      { id: uid(), kind: 'saldo', name: 'Ahorro total', sub: 'Saldo de tus cuentas frente al objetivo', target: 10000, deadline: '2027-05-09' }
-    ] };
+    S.metas = { baseline: 0, saldoManual: null, ritmoManual: null, list: [] };
     save();
   }
   return S.metas;
@@ -920,12 +950,12 @@ function metasCalc() {
 }
 function viewMetas() {
   const C = metasCalc(), M = C.M;
-  if (C.saldo == null) return `<div class="card" style="text-align:center;padding:28px 18px"><h2 style="justify-content:center">Necesito tu saldo</h2><div class="muted" style="margin:6px auto 16px;max-width:380px">Las metas se calculan con el saldo de tus cuentas. Carga el Excel de seguimiento o escribe el saldo a mano.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn primary" data-act="gxFile">Cargar Excel</button><button class="btn" data-act="metaCfg">Escribir saldo</button></div></div>`;
+  if (C.saldo == null) return `<div class="card" style="text-align:center;padding:28px 18px"><h2 style="justify-content:center">Necesito tu saldo</h2><div class="muted" style="margin:6px auto 16px;max-width:380px">Las metas se calculan con el saldo de tus cuentas. Carga el Excel de seguimiento o escribe el saldo a mano.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn primary" data-act="gxFile">Cargar Excel</button><button class="btn" data-act="gxDrive">Sincronizar con Google</button><button class="btn" data-act="metaCfg">Escribir saldo</button></div></div>`;
   const ok = !C.locked;
   const head = `<div class="card ${ok ? '' : 'alerta'}"><div class="row between" style="align-items:flex-start"><div><div class="muted" style="font-size:14px;font-weight:550">Colchón intocable</div><div class="pctbig num" style="font-size:38px">${eur(M.baseline)}</div></div><span class="badge ${ok ? 'buy' : 'alta'}">${ok ? `${eur(C.margen)} por encima` : `${eur(-C.margen)} por debajo`}</span></div>
     <div class="stats"><div><b class="num ${ok ? 'good' : 'bad'}">${eur(C.saldo)}</b><span>saldo de tus cuentas</span></div><div><b class="num">${eur(C.dispo)}</b><span>disponible para metas</span></div><div><b class="num">${C.rit != null ? eur(C.rit) + '/mes' : '—'}</b><span>ahorro medio${C.ritSrc ? ' (' + C.ritSrc + ')' : ''}</span></div></div>
     ${ok ? '' : '<p class="bad" style="margin:14px 0 0;font-weight:600">El saldo está por debajo del colchón. El reparto a las metas está bloqueado hasta que lo recuperes.</p>'}
-    <div class="row between" style="margin-top:14px"><span class="muted" style="font-size:13px">Fuente: ${esc(C.src)}${C.pendientes ? ` · ${eur(C.pendientes)} por contabilizar aún sin descontar` : ''}</span><button class="btn sm" data-act="metaCfg">Ajustes</button></div></div>`;
+    <div class="row between" style="margin-top:14px"><span class="muted" style="font-size:13px">Fuente: ${esc(C.src)}${C.pendientes ? ` · ${eur(C.pendientes)} por contabilizar aún sin descontar` : ''}</span><span class="row" style="gap:8px"><button class="btn sm" data-act="gxDrive">Sincronizar</button><button class="btn sm" data-act="metaCfg">Ajustes</button></span></div></div>`;
   const cards = C.rows.map((r, i) => {
     const g = r.g, locked = C.locked && r.kind === 'prio';
     const badge = locked ? '<span class="badge alta">Bloqueada</span>' : r.covered ? '<span class="badge buy">Cubierta</span>' : r.late ? '<span class="badge alta">Fuera de plazo</span>' : '<span class="badge">En curso</span>';
@@ -941,6 +971,7 @@ function viewMetas() {
       <div style="margin-top:12px;font-size:15px">${foot}</div>${items}
       <div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn sm" data-act="metaEdit" data-id="${g.id}">Editar</button>${g.kind !== 'saldo' && prio.indexOf(g) > 0 ? `<button class="btn sm" data-act="metaUp" data-id="${g.id}" aria-label="Subir prioridad">Subir</button>` : ''}${g.kind !== 'saldo' && prio.indexOf(g) < prio.length - 1 ? `<button class="btn sm" data-act="metaDown" data-id="${g.id}" aria-label="Bajar prioridad">Bajar</button>` : ''}<button class="btn sm danger" data-act="metaDel" data-id="${g.id}">Quitar</button></div></div>`;
   }).join('');
+  if (!M.list.length) return head + `<div class="card section" style="text-align:center"><h2 style="justify-content:center">Aún no hay metas</h2><div class="muted" style="margin:6px auto 0;max-width:380px">Defínelas en la pestaña «Metas» de tu hoja «Cockpit Config» y pulsa Sincronizar, o añade una a mano.</div></div>`;
   return `${head}<div class="grid g2 section">${cards}</div>`;
 }
 function metasTop(n) {
@@ -1124,7 +1155,7 @@ $('#settingsBtn').onclick = settings;
 
 render();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
-window.__cockpit = { get S() { return S; }, ui, render, gxView, gxIngest };
+window.__cockpit = { get S() { return S; }, ui, render, gxView, gxIngest, parseCfg };
 })();
 </script>
 </body>
