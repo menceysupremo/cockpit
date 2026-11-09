@@ -31,6 +31,11 @@
   ],
   "shortcuts": [
     {
+      "name": "Captura rápida",
+      "short_name": "Captura",
+      "url": "./index.html?go=capture"
+    },
+    {
       "name": "Agenda",
       "short_name": "Agenda",
       "url": "./index.html?go=agenda"
