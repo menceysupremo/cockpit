@@ -227,6 +227,20 @@ h2 .ico,.row .ico{color:var(--muted)}
 .mact .sp2{flex:1}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;margin-top:18px}
 .stats3 b{display:block;font-family:var(--font-d);font-size:24px;font-weight:600}.stats3 span{font-size:13px;color:var(--muted)}
+.card.ok{border-color:color-mix(in srgb,var(--good) 55%,var(--line));background:color-mix(in srgb,var(--good) 8%,var(--panel))}
+nav.tabs button{position:relative}.nb{position:absolute;top:10px;left:calc(50% + 6px);width:8px;height:8px;background:var(--accent);border-radius:50%}
+@media (min-width:860px){.nb{top:50%;left:auto;right:14px;margin-top:-4px}}
+.wg-mark{display:inline-block;width:22px;height:16px;background:linear-gradient(var(--accent),var(--accent)) 0 100%/4px 7px no-repeat,linear-gradient(var(--accent),var(--accent)) 6px 100%/4px 11px no-repeat,linear-gradient(var(--accent),var(--accent)) 12px 100%/4px 16px no-repeat,linear-gradient(var(--steel),var(--steel)) 18px 100%/2px 16px no-repeat}
+.wg{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px 18px 22px;cursor:pointer;text-align:left}
+.wg::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.wg-top{display:flex;align-items:center;gap:10px}.wg-time{margin-left:auto;font-family:var(--font-d);font-size:15px;letter-spacing:.06em;color:var(--muted)}
+.wg-chip{font-size:12px;font-weight:600;color:var(--steel-fg);border:1px solid var(--line);background:var(--panel2);padding:3px 8px;border-radius:2px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wg-t{color:var(--text);font-family:var(--font-d);font-size:30px;font-weight:600;line-height:1.08;letter-spacing:.01em;margin:4px 0 2px}.wg-s{color:var(--muted);font-size:14px}
+.wg-s.wg-s{font-size:14px}.wg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wg-cell{background:var(--panel2);border:1px solid var(--line);border-radius:var(--ctl);padding:10px 12px;min-width:0}.wg-cell b{display:block;font-family:var(--font-d);font-size:22px;font-weight:600;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wg-cell span{font-size:12px;color:var(--muted)}
+.wg-bar{margin-bottom:10px;font-size:14px}.wg-after{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px;font-size:14px}
+.wg:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+body.wmode{padding:0}body.wmode nav.tabs,body.wmode header.top,body.wmode .fab{display:none}body.wmode .shell{max-width:460px;padding:12px}
 </style>
 </head>
 <body>
@@ -335,6 +349,8 @@ const I = {
   refresh: '<path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/>',
   star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  viaje: '<path d="M21 4L3 11l7 2 2 7z"/>',
+  widgets: '<rect x="3.5" y="3.5" width="7" height="7"/><rect x="13.5" y="3.5" width="7" height="7"/><rect x="3.5" y="13.5" width="7" height="7"/><rect x="13.5" y="13.5" width="7" height="7"/>',
   up: '<path d="M12 19V5M5 12l7-7 7 7"/>',
   down: '<path d="M12 5v14M5 12l7 7 7-7"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
@@ -342,10 +358,10 @@ const I = {
 };
 const ic = (k, c = '') => `<svg class="ico ${c}" viewBox="0 0 24 24" aria-hidden="true">${I[k] || ''}</svg>`;
 const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
-const NAV_GROUPS = [['Día a día', ['hoy', 'agenda', 'radar']], ['Dinero', ['gastos', 'precios', 'fin', 'metas']], ['Vida', ['hab', 'int', 'notas']]];
+const NAV_GROUPS = [['Día a día', ['hoy', 'agenda', 'radar']], ['Dinero', ['gastos', 'precios', 'fin', 'metas']], ['Vida', ['hab', 'viaje', 'int', 'notas', 'widgets']]];
 const NAV_ORDER = NAV_GROUPS.flatMap(g => g[1]), NAV_MAIN = ['hoy', 'agenda', 'gastos', 'precios', 'hab'];
 const tabName = k => TABS.find(t => t[0] === k)[1];
-const TABS = [['hoy', 'Hoy'], ['agenda', 'Agenda'], ['radar', 'Radar'], ['precios', 'Precios'], ['gastos', 'Gastos'], ['fin', 'Finanzas'], ['metas', 'Metas'], ['hab', 'Forja'], ['int', 'Intereses'], ['notas', 'Notas']];
+const TABS = [['hoy', 'Hoy'], ['agenda', 'Agenda'], ['radar', 'Radar'], ['precios', 'Precios'], ['gastos', 'Gastos'], ['fin', 'Finanzas'], ['metas', 'Metas'], ['hab', 'Forja'], ['viaje', 'Viaje'], ['int', 'Intereses'], ['notas', 'Notas'], ['widgets', 'Widgets']];
 
 /* ---------- dialogs ---------- */
 const dlg = $('#dlg');
@@ -464,6 +480,7 @@ function viewHoy() {
     { c: 'var(--c5)', v: months.map(m => monthStats(m).out) }
   ];
   return `
+  ${priceAlertCard()}
   ${agendaWidget()}
   ${gxHero()}
   ${manual ? `  <div class="grid g4">
@@ -489,7 +506,17 @@ function viewHoy() {
     <div class="card"><h2><span>${ic(S.lists[0]?.ic || 'check')} ${esc(S.lists[0]?.title || 'Pendientes')}</span> <button class="btn sm" data-go="int">Abrir</button></h2>
       ${pend.length ? `<div class="list">${pend.slice(0, 5).map(i => `<div class="item"><button class="chk" role="checkbox" aria-checked="false" data-act="tick" data-l="${S.lists[0].id}" data-i="${i.id}" aria-label="Completar"></button><span class="grow">${esc(i.text)}</span></div>`).join('')}</div>` : '<div class="empty">Bandeja limpia.</div>'}
     </div>
-  </div>`;
+  </div>
+  ${weekCard()}`;
+}
+function weekCard() {
+  const days = weekDays(), keys = days.map(dKey), today = dKey(new Date()), elapsedD = keys.filter(k => k <= today).length;
+  const tr = new Set(S.forja.sessions.filter(x => keys.includes(x.date)).map(x => x.date)).size, goal = gymHabit()?.goal || 4;
+  const hd = S.habits.reduce((t, h) => t + keys.filter(k => k <= today && h.log[k]).length, 0), hp = S.habits.length ? Math.round(hd / (S.habits.length * elapsedD) * 100) : null;
+  const st = S.gx ? gxStats(gxView(S.gx)) : null, wkEnd = new Date(days[6]).setHours(23, 59, 59, 999);
+  const ev = S.live.at ? S.live.cal.filter(e => e.sm > Date.now() && e.sm < wkEnd).length : null, open = S.radar.filter(r => r.status !== 'Hecho').length;
+  const c = (b, l, cls = '') => `<div><b class="num ${cls}">${b}</b><span>${l}</span></div>`;
+  return `<div class="card section"><h2>Tu semana</h2><div class="stats3">${c(tr + '/' + goal, 'entrenos', tr >= goal ? 'good' : '')}${c(hp != null ? hp + '%' : '—', 'hábitos al día')}${c(st && st.sem != null ? gxM(st.wk) : '—', st && st.sem != null ? 'gastado de ' + gxM(st.sem) : 'gasto de la semana', st && st.wl < 0 ? 'bad' : '')}${c(open, 'avisos abiertos')}${c(ev == null ? '—' : ev, 'eventos que quedan')}${c(priceAlerts().length, 'precios en objetivo', priceAlerts().length ? 'good' : '')}</div></div>`;
 }
 
 function viewFin() {
@@ -544,6 +571,44 @@ function finSim() {
     <div class="card"><h2>Resultado</h2><div class="kpi"><div class="v num">${money(last.a)}</div><div class="s">Aportado ${money(put)} · intereses ${money(last.a - put)}</div></div><div class="sp"></div>${line(pts)}<div class="muted" style="font-size:11px">Línea ámbar: con interés · punteada: solo aportaciones</div></div></div>`;
 }
 
+function viewViaje() {
+  const V = S.viaje;
+  if (!V) return `<div class="card" style="text-align:center;padding:28px 18px"><h2 style="justify-content:center">Sin viaje</h2><div class="muted" style="margin:6px auto 16px;max-width:380px">Define tu viaje en la pestaña «Viaje» de la hoja Cockpit Config y sincroniza.</div><button class="btn primary" data-act="gxDrive">Sincronizar con Google</button></div>`;
+  const parts = V.items.filter(i => i.tipo === 'partida'), tasks = V.items.filter(i => i.tipo === 'tarea');
+  const bud = parts.reduce((a, i) => a + i.bud, 0), res = parts.reduce((a, i) => a + i.res, 0), pc = bud ? Math.min(100, res / bud * 100) : 0;
+  const isDay = /^\d{4}-\d{2}-\d{2}$/.test(V.date), isMon = /^\d{4}-\d{2}$/.test(V.date);
+  const left = isDay ? Math.ceil((new Date(V.date + 'T12:00') - Date.now()) / 864e5) : isMon ? Math.round(monthsTo(new Date(), V.date + '-15')) : null;
+  const cd = left == null ? '—' : isDay ? (left < 0 ? 'Ya pasó' : left + ' día' + (left === 1 ? '' : 's')) : left + ' mes' + (left === 1 ? '' : 'es');
+  const dn = t => S.viaje.done[t.n] ?? t.done, nd = tasks.filter(dn).length;
+  return `<div class="card nowcard" style="padding-left:22px"><div class="k">${isDay ? 'FALTAN' : 'FALTAN, APROX.'}</div><div class="pctbig num" style="margin-top:4px;white-space:nowrap">${esc(cd)}</div><div style="margin-top:8px"><b style="font-size:18px">${esc(V.name)}</b><span class="muted" style="display:block;font-size:14px;margin-top:2px">${isDay ? new Date(V.date + 'T12:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : isMon ? longMonth(new Date(V.date + '-15T12:00')) : ''}</span></div></div>
+  <div class="card section"><h2>Presupuesto</h2><div class="mhead" style="margin-top:0"><div class="pctbig num">${Math.round(pc)}%</div><div class="mamt num"><b>${eur(res)}</b><span> reservado de ${eur(bud)}</span></div></div><div class="bar lg gauge ${pc >= 100 ? 'ok' : ''}"><i data-w="${pc.toFixed(1)}%" style="width:0"></i></div><div class="mstats"><div><span class="k">Falta reservar</span><b class="num">${eur(Math.max(0, bud - res))}</b></div><div><span class="k">Partidas</span><b class="num">${parts.length}</b></div><div><span class="k">Tareas</span><b class="num">${nd}/${tasks.length}</b></div></div></div>
+  <div class="grid g2 section"><div class="card"><h2>Partidas</h2><div class="list">${parts.map(i => `<div class="item" style="display:block"><div class="row between"><span>${esc(i.n)}</span><span class="num muted">${eur(i.res)} / ${eur(i.bud)}</span></div><div class="sp" style="height:6px"></div><div class="bar gauge ${i.res >= i.bud && i.bud ? 'ok' : ''}" style="height:10px"><i data-w="${i.bud ? Math.min(100, i.res / i.bud * 100).toFixed(1) : 0}%" style="width:0"></i></div></div>`).join('') || '<div class="empty">Sin partidas.</div>'}</div></div>
+  <div class="card"><h2><span>Checklist</span><span class="num muted">${nd}/${tasks.length}</span></h2><div class="list">${tasks.map(t => `<div class="item"><button class="chk" role="checkbox" aria-checked="${!!dn(t)}" data-act="vTick" data-k="${esc(t.n)}" aria-label="${esc(t.n)}">${dn(t) ? ic('check') : ''}</button><div class="grow ${dn(t) ? 'done' : ''}">${esc(t.n)}${t.date ? `<div class="muted" style="font-size:12px">${esc(t.date)}</div>` : ''}</div></div>`).join('') || '<div class="empty">Sin tareas.</div>'}</div></div></div>`;
+}
+function widgetData() {
+  const now = Date.now(), L = S.live, ev = L.at ? L.cal.filter(e => e.em > now && !e.allDay) : [];
+  return { ev, cur: ev.find(e => e.sm <= now), nxt: ev.find(e => e.sm > now), R: S.forja.routines.find(r => r.day === new Date().getDay()), done: S.forja.sessions.some(x => x.date === dKey(new Date())), act: S.forja.active, st: S.gx ? gxStats(gxView(S.gx)) : null, open: S.radar.filter(r => r.status !== 'Hecho').length };
+}
+function widgetHTML(size) {
+  const D = widgetData(), now = Date.now(), L = S.live;
+  const main = D.cur ? { k: 'AHORA', t: D.cur.t, s: `Termina ${hhmm(D.cur.em)} · quedan ${dur(D.cur.em - now)}` }
+    : D.nxt ? { k: 'SIGUIENTE · EN ' + dur(D.nxt.sm - now).toUpperCase(), t: D.nxt.t, s: hhmm(D.nxt.sm) + (D.nxt.loc ? ' · ' + D.nxt.loc : '') }
+    : { k: L.at ? 'HOY' : 'AGENDA', t: L.at ? 'Sin más eventos' : 'Sin conectar', s: L.at ? 'Día despejado' : 'Abre el cockpit y sincroniza' };
+  const gym = D.act ? ['Entrenando', elapsed()] : D.done ? ['Entreno', 'Hecho'] : D.R ? ['Hoy toca', D.R.name] : ['Entreno', 'Descanso'];
+  const cell = (b, l, cls = '') => `<div class="wg-cell"><b class="num ${cls}">${esc(b)}</b><span>${esc(l)}</span></div>`;
+  const money2 = D.st && D.st.sem != null ? [gxM(D.st.wl), D.st.wl < 0 ? 'te has pasado' : 'te quedan esta semana'] : ['—', 'semana'];
+  const C = metasCalc(), top = C.saldo != null && C.rows ? C.rows.slice(0, 3) : [];
+  const after = D.ev.filter(e => e !== D.cur && e !== D.nxt).slice(0, 2);
+  const body = size === 's' ? '' : `<div class="wg-grid">${cell(gym[1], gym[0])}${cell(money2[0], money2[1], D.st && D.st.wl < 0 ? 'bad' : '')}${size === 'l' ? cell(String(priceAlerts().length), 'precios en objetivo', priceAlerts().length ? 'good' : '') + cell(String(D.open), 'avisos abiertos') : ''}</div>`
+    + (size === 'l' && top.length ? `<div>${top.map(r => `<div class="wg-bar"><div class="row between"><span>${esc(r.g.name)}</span><span class="num muted">${Math.round(r.pct)}%</span></div><div class="bar gauge ${r.covered ? 'ok' : ''}" style="height:8px"><i style="width:${r.pct.toFixed(1)}%"></i></div></div>`).join('')}</div>` : '')
+    + (size === 'l' && after.length ? `<div class="wg-after">${after.map(e => `<div class="row between"><span>${esc(e.t)}</span><span class="num muted">${dayLabel(e.sm).split(' · ')[0] === 'Hoy' ? hhmm(e.sm) : dayLabel(e.sm).split(' · ')[0] + ' ' + hhmm(e.sm)}</span></div>`).join('')}</div>` : '');
+  return `<div class="wg wg-${size}" data-act="${ui.widget ? 'wClose' : 'wOpen'}" data-s="${size}" role="button" tabindex="0" aria-label="Widget ${size}"><div class="wg-top"><span class="wg-mark" aria-hidden="true"></span>${size === 's' ? `<span class="wg-chip">${esc(gym[0])}: ${esc(gym[1])}</span>` : ''}<span class="wg-time">${new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span></div><div><div class="k">${esc(main.k)}</div><div class="wg-t">${esc(main.t)}</div><div class="wg-s">${esc(main.s)}</div></div>${body}</div>`;
+}
+function viewWidgets() {
+  return `<div class="muted" style="max-width:560px;margin-bottom:16px">Tres tamaños pensados para verse de un vistazo. Pulsa uno para abrirlo a pantalla completa; ahí se actualiza solo y un toque te lleva al cockpit.</div>
+  <div class="grid g2" style="align-items:start"><div><div class="k" style="margin-bottom:8px">PEQUEÑO · 4×1</div>${widgetHTML('s')}<div class="k" style="margin:20px 0 8px">MEDIANO · 4×2</div>${widgetHTML('m')}</div><div><div class="k" style="margin-bottom:8px">GRANDE · 4×4</div>${widgetHTML('l')}</div></div>
+  <div class="card section"><h2>Tenerlo en el móvil</h2><div class="muted" style="font-size:14px;line-height:1.6">Con el cockpit instalado, mantén pulsado su icono y elige <b>Widget</b> para abrirlo directamente. Si quieres un icono propio, abre el widget y usa «Añadir a pantalla de inicio» del navegador. Esto no es un widget nativo de Android (esos requieren compilar el APK con código propio); es una pantalla compacta de un toque.</div></div>`;
+}
 function viewInt() {
   return `<div class="grid g2">${S.lists.map(l => `<div class="card"><h2><span>${ic(l.ic || 'list')} ${esc(l.title)}</span><span class="row"><button class="btn sm" data-act="addItem" data-l="${l.id}">+ Añadir</button><button class="xbtn" data-act="delList" data-l="${l.id}" aria-label="Borrar lista">${ic('x')}</button></span></h2>
     ${l.items.length ? `<div class="list">${l.items.map(i => `<div class="item"><button class="chk" role="checkbox" aria-checked="${!!i.done}" data-act="tick" data-l="${l.id}" data-i="${i.id}">${i.done ? ic('check') : ''}</button><span class="grow ${i.done ? 'done' : ''}">${esc(i.text)}</span><button class="xbtn" data-act="delItem" data-l="${l.id}" data-i="${i.id}" aria-label="Borrar">${ic('x')}</button></div>`).join('')}</div>` : '<div class="empty">Vacía.</div>'}</div>`).join('')}</div>`;
@@ -639,7 +704,7 @@ function priceCard(p) {
     <div class="pgrid">${cell('Último', c.last != null ? money(c.last, 2) : '—')}${cell('Objetivo', p.target > 0 ? money(p.target, 2) : '—')}${cell('Mínimo', c.min != null ? money(c.min, 2) : '—')}${cell('Dif.', c.diff != null ? (c.diff > 0 ? '+' : '') + money(c.diff, 2) : '—', c.diff != null ? (c.diff <= 0 ? 'good' : 'bad') : '')}</div>
     <details style="margin-top:10px"><summary class="muted" style="cursor:pointer;font-size:13px">Historial (${hist.length})</summary>
     <div class="list" style="margin-top:6px">${histRows || '<div class="empty">Sin comprobaciones.</div>'}</div>
-    <div class="row" style="gap:8px;margin-top:8px"><button class="btn sm" data-act="addCheck" data-id="${p.id}">+ Precio</button><button class="btn sm danger" data-act="delPrice" data-id="${p.id}">Quitar</button></div></details></div>`;
+    <div class="row" style="gap:8px;margin-top:8px"><button class="btn sm" data-act="addCheck" data-id="${p.id}">+ Precio</button><button class="btn sm danger" data-act="delPrice" data-id="${p.id}">Quitar</button></div></details><div class="row" style="margin-top:12px">${c.last != null ? `<button class="btn sm" data-act="whatIf" data-id="${p.id}">¿Y si lo compro?</button>` : ''}</div></div>`;
 }
 function viewPrecios() {
   S.prices.forEach(p => { p.id = p.id || uid(); });
@@ -650,8 +715,24 @@ function viewPrecios() {
   const seg = Object.keys(tests).map(k => `<button data-pf="${k}" aria-pressed="${f === k}">${k} (${count(tests[k])})</button>`).join('');
   const list = rows.filter(tests[f]).sort((a, b) => (b.c.verdict === 'COMPRAR') - (a.c.verdict === 'COMPRAR') || a.p.name.localeCompare(b.p.name, 'es'));
   return `<div class="grid g3" style="margin-bottom:14px"><div class="card kpi"><h2>Vigilando</h2><div class="v num">${count(r => r.p.status === 'Vigilando')}</div></div><div class="card kpi"><h2>En objetivo</h2><div class="v num good">${count(tests['En objetivo'])}</div></div><div class="card kpi" style="grid-column:1/-1"><h2>Sin objetivo</h2><div class="v num">${count(r => !(r.p.target > 0))}</div><div class="s">productos sin precio objetivo</div></div></div>
-  <div style="margin-bottom:14px"><div class="seg">${seg}</div></div>
-  ${list.length ? `<div class="grid g2">${list.map(r => priceCard(r.p)).join('')}</div>` : '<div class="card"><div class="empty">Nada por aquí. Añade un producto con «+ Producto» o cambia el filtro.</div></div>'}`;
+  <div class="row between" style="margin-bottom:14px;flex-wrap:wrap;gap:10px"><div class="seg">${seg}</div>${S.prices.length ? `<button class="btn sm" data-act="gxDrive">${ic('refresh')} Sincronizar</button>` : ''}</div>
+  ${list.length ? `<div class="grid g2">${list.map(r => priceCard(r.p)).join('')}</div>` : (S.prices.length ? '<div class="card"><div class="empty">Nada con este filtro.</div></div>' : '<div class="card" style="text-align:center;padding:28px 18px"><h2 style="justify-content:center">Aún no hay productos</h2><div class="muted" style="margin:6px auto 16px;max-width:400px">Los productos que vigila Instinct viven en tu hoja «Seguimiento». Sincroniza y aparecen aquí con su historial de precios.</div><button class="btn primary" data-act="gxDrive">Sincronizar con Google</button></div>')}`;
+}
+const priceAlerts = () => S.prices.filter(p => priceCalc(p).verdict === 'COMPRAR');
+function priceAlertCard() {
+  const a = priceAlerts(); if (!a.length) return '';
+  return `<div class="card ok section" style="margin-top:0;margin-bottom:12px"><h2><span>${ic('star')} ${a.length === 1 ? 'Un precio en objetivo' : a.length + ' precios en objetivo'}</span><button class="btn sm" data-go="precios">Ver</button></h2><div class="list">${a.slice(0, 3).map(p => { const c = priceCalc(p); return `<div class="item"><div class="grow"><div style="font-weight:600">${esc(p.name)}</div><div class="muted" style="font-size:13px">${money(c.last, 2)} · objetivo ${money(p.target, 2)}</div></div><button class="btn sm" data-act="whatIf" data-id="${p.id}">¿Y si lo compro?</button></div>`; }).join('')}</div></div>`;
+}
+function whatIf(id) {
+  const p = S.prices.find(x => x.id === id), c = p && priceCalc(p);
+  if (!p || c.last == null) return toast('Este producto aún no tiene precio');
+  const A = metasCalc(0); if (A.saldo == null) return toast('Primero carga el Excel o escribe tu saldo en Metas');
+  const B = metasCalc(c.last), eta = r => r.covered ? 'ya' : r.eta === undefined ? 'sin ritmo' : r.eta ? shortMonth(r.eta) : '—';
+  const rows = A.rows.map((r, i) => { const q = B.rows[i]; return `<div class="item"><div class="grow"><div style="font-weight:600">${esc(r.g.name)}</div><div class="muted" style="font-size:13px">${Math.round(r.pct)}% → ${Math.round(q.pct)}% · ${eta(r)} → ${eta(q)}</div></div></div>`; }).join('');
+  dlg.innerHTML = `<h3>¿Y si lo compras?</h3><p class="muted" style="margin:4px 0 0">${esc(p.name)} a ${money(c.last, 2)}</p>
+    <div class="stats3"><div><b class="num">${eur(B.saldo)}</b><span>saldo (antes ${eur(A.saldo)})</span></div><div><b class="num">${eur(B.dispo)}</b><span>disponible (antes ${eur(A.dispo)})</span></div><div><b class="num ${B.locked ? 'bad' : 'good'}">${B.locked ? 'Por debajo' : 'Intacto'}</b><span>colchón</span></div></div>
+    ${B.locked ? '<p class="mnote warn">Te dejaría por debajo del colchón: las metas quedarían bloqueadas.</p>' : ''}<div class="list" style="margin-top:12px">${rows}</div><div class="dlg-actions"><button type="button" class="btn" data-x>Cerrar</button></div>`;
+  $('[data-x]', dlg).onclick = () => dlg.close(); dlg.showModal();
 }
 function pricesTop(n) {
   const l = S.prices.map(p => ({ p, c: priceCalc(p) })).filter(r => r.c.verdict === 'COMPRAR').slice(0, n);
@@ -825,11 +906,29 @@ function parseCfg(T) {
   const radar = rows(T.Radar).map(r => { const ty = R_TYPES.find(t => t.toLowerCase() === str(r[0]).toLowerCase()) || 'Otro', pr = ['Alta', 'Media', 'Baja'].find(t => t.toLowerCase() === str(r[3]).toLowerCase()) || 'Media';
     return { id: uid(), src: 'sheet', type: ty, title: str(r[1]), date: dstr(r[2]), prio: pr, status: 'Pendiente', note: str(r[4]), link: str(r[5]) }; }).filter(x => x.title);
   const lists = []; rows(T.Intereses).forEach(r => { const t = str(r[0]), it = str(r[1]); if (!t) return; let L = lists.find(x => x.title.toLowerCase() === t.toLowerCase()); if (!L) lists.push(L = { title: t, items: [] }); if (it) L.items.push({ text: it + (str(r[2]) ? ' · ' + str(r[2]) : ''), done: /^(s[ií]|x|1|true|hecho)$/i.test(str(r[3])) }); });
-  return { baseline: n(cfg.colchon) ?? 0, saldoManual: n(cfg.saldo_manual), ritmoManual: n(cfg.ahorro_mensual_manual), list, gastos: str(cfg.archivo_gastos), routines, radar, lists };
+  const vi = rows(T.Viaje).map(r => ({ tipo: /tarea/i.test(str(r[0])) ? 'tarea' : 'partida', n: str(r[1]), bud: n(r[2]) || 0, res: n(r[3]) || 0, date: str(r[4]), done: /^(s[ií]|x|1|true|hecho)$/i.test(str(r[5])) })).filter(x => x.n);
+  const viaje = vi.length || cfg.viaje_nombre ? { name: str(cfg.viaje_nombre) || 'Viaje', date: str(cfg.viaje_fecha), items: vi } : null;
+  return { viaje, baseline: n(cfg.colchon) ?? 0, saldoManual: n(cfg.saldo_manual), ritmoManual: n(cfg.ahorro_mensual_manual), list, gastos: str(cfg.archivo_gastos), precios: str(cfg.archivo_precios), routines, radar, lists };
+}
+const sheetDate = x => { if (typeof x === 'number') return new Date(Date.UTC(1899, 11, 30) + x * 864e5).toISOString().slice(0, 10); const t = String(x ?? '').trim(), m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? `${m[3]}-${pad(+m[2])}-${pad(+m[1])}` : t.slice(0, 10); };
+function parseSeg(T) {
+  const rows = a => (a || []).slice(4).filter(r => r && String(r[0] ?? r[1] ?? '').trim() !== '' && !/^EJEMPLO/i.test(String(r[0] ?? '')) && !/^EJEMPLO/i.test(String(r[1] ?? '')));
+  const str = x => String(x ?? '').trim(), n = x => typeof x === 'number' ? x : x === '' || x == null ? null : (v => isNaN(v) ? null : v)(num(String(x).replace(/[€\s]/g, '').replace(/\./g, '')));
+  const hist = {}; rows(T.Historial).forEach(r => { const k = str(r[1]); (hist[k] = hist[k] || []).push({ date: sheetDate(r[0]), store: str(r[2]), price: n(r[3]), link: str(r[4]), note: str(r[5]) }); });
+  const prices = rows(T.Precios).map(r => ({ name: str(r[0]), store: str(r[1]), link: str(r[2]), target: n(r[3]) || 0, status: str(r[4]) || 'Vigilando', history: hist[str(r[0])] || [] })).filter(x => x.name);
+  const radar = rows(T.Radar).map(r => ({ id: uid(), src: 'seg', type: R_TYPES.find(t => t.toLowerCase() === str(r[0]).toLowerCase()) || 'Otro', title: str(r[1]), date: sheetDate(r[2]), prio: ['Alta', 'Media', 'Baja'].find(t => t.toLowerCase() === str(r[3]).toLowerCase()) || 'Media', status: ['Pendiente', 'En curso', 'Hecho'].find(t => t.toLowerCase() === str(r[4]).toLowerCase()) || 'Pendiente', note: str(r[5]), link: str(r[6]) })).filter(x => x.title);
+  return { prices, radar };
+}
+function applySeg(g) {
+  const old = new Map(S.prices.filter(x => x.src === 'seg').map(x => [x.name, x.id]));
+  S.prices = S.prices.filter(x => x.src !== 'seg').concat(g.prices.map(x => ({ ...x, id: old.get(x.name) || uid(), src: 'seg' })));
+  S.radar = S.radar.filter(x => x.src !== 'seg').concat(g.radar);
+  save();
 }
 function applyCfg(c) {
   S.metas = { baseline: c.baseline, saldoManual: c.saldoManual, ritmoManual: c.ritmoManual, list: c.list };
   if (c.routines.length) S.forja.routines = c.routines;
+  if (c.viaje) S.viaje = { ...c.viaje, done: S.viaje?.done || {} };
   const prev = new Map(S.radar.filter(x => x.src === 'sheet').map(x => [x.type + '|' + x.title + '|' + x.date, x.status]));
   S.radar = S.radar.filter(x => x.src !== 'sheet').concat(c.radar.map(x => ({ ...x, status: prev.get(x.type + '|' + x.title + '|' + x.date) || 'Pendiente' })));
   c.lists.forEach(L => {
@@ -841,7 +940,7 @@ function applyCfg(c) {
 }
 
 /* ---------- Google en vivo: calendario, correo, hoja de configuración ---------- */
-const GSCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly';
+const GSCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly';
 const GX_CLIENT_ID = '579903878582-fjpq7fvri1b7sjh6rcvd1qd61ai0abuf.apps.googleusercontent.com';
 const GAPI = { tok: null, exp: 0 };
 function gToken(force) {
@@ -858,8 +957,51 @@ function gToken(force) {
     const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.onload = go; sc.onerror = () => no(new Error('No se pudo cargar Google (¿sin conexión?)')); document.head.appendChild(sc);
   });
 }
+const gSend = async (u, method, body) => { const res = await fetch(u, { method, headers: { Authorization: 'Bearer ' + GAPI.tok, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!res.ok) throw new Error('Google respondió ' + res.status + ' (escritura)'); return res.json(); };
 const gApi = async u => { const res = await fetch(u, { headers: { Authorization: 'Bearer ' + GAPI.tok } }); if (!res.ok) throw new Error('Google respondió ' + res.status + ' (' + u.split('/')[2].split('.')[0] + ')'); return res; };
 const gFind = async name => { const q = `name contains '${name.replace(/'/g, "\\'")}' and trashed=false`; const j = await (await gApi('https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime%20desc&fields=files(id,name,mimeType)&q=' + encodeURIComponent(q))).json(); return j.files && j.files[0]; };
+const gFindSheet = async name => { const q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`; const j = await (await gApi('https://www.googleapis.com/drive/v3/files?pageSize=3&orderBy=modifiedTime%20desc&fields=files(id,name)&q=' + encodeURIComponent(q))).json(); return j.files && j.files[0]; };
+const sheetTitles = async id => ((await (await gApi(`https://sheets.googleapis.com/v4/spreadsheets/${id}?fields=sheets.properties.title`)).json()).sheets || []).map(x => x.properties.title);
+const stateSnap = () => ({ v: 1, t: Date.now(),
+  sessions: S.forja.sessions,
+  habits: S.habits.map(h => ({ name: h.name, goal: h.goal || 0, log: h.log })),
+  radar: S.radar.map(r => ({ k: r.type + '|' + r.title + '|' + r.date, status: r.status })),
+  viaje: S.viaje?.done || {},
+  gx: S.gx ? { ov: S.gx.ov, topes: S.gx.topes } : null,
+  lists: S.lists.map(l => ({ title: l.title, ic: l.ic, items: l.src ? [] : l.items.map(i => ({ text: i.text })), done: l.items.filter(i => i.done).map(i => i.text) })) });
+function stateMerge(R) {
+  if (!R) return;
+  const ids = new Set(S.forja.sessions.map(x => x.id)); (R.sessions || []).forEach(x => { if (!ids.has(x.id)) S.forja.sessions.push(x); });
+  S.forja.sessions.sort((a, b) => (a.date + String(a.start || 0).padStart(14, '0')).localeCompare(b.date + String(b.start || 0).padStart(14, '0')));
+  (R.habits || []).forEach(rh => { const h = S.habits.find(x => x.name === rh.name); if (h) Object.assign(h.log, rh.log); else S.habits.push({ id: uid(), name: rh.name, goal: rh.goal || 0, log: { ...rh.log } }); });
+  const rank = { 'Pendiente': 0, 'En curso': 1, 'Hecho': 2 };
+  (R.radar || []).forEach(rr => { const l = S.radar.find(x => x.type + '|' + x.title + '|' + x.date === rr.k); if (l && rank[rr.status] > rank[l.status]) l.status = rr.status; });
+  if (R.viaje) { S.viaje = S.viaje || { done: {} }; S.viaje.done = { ...R.viaje, ...S.viaje.done }; }
+  if (R.gx && S.gx) { S.gx.ov = { ...R.gx.ov, ...S.gx.ov }; S.gx.topes = { ...R.gx.topes, ...S.gx.topes }; }
+  (R.lists || []).forEach(rl => {
+    let l = S.lists.find(x => x.title.toLowerCase() === rl.title.toLowerCase());
+    if (!l) S.lists.push(l = { id: uid(), ic: rl.ic || 'list', title: rl.title, items: [] });
+    (rl.items || []).forEach(i => { if (!l.items.some(x => x.text === i.text)) l.items.push({ id: uid(), text: i.text, done: false }); });
+    (rl.done || []).forEach(t => { const it = l.items.find(x => x.text === t); if (it) it.done = true; });
+  });
+}
+async function stateRead(id, have) {
+  if (!have.includes('Estado')) return null;
+  const j = await (await gApi(`https://sheets.googleapis.com/v4/spreadsheets/${id}/values/Estado!A2:A200?valueRenderOption=UNFORMATTED_VALUE`)).json();
+  const txt = (j.values || []).map(r => r[0] ?? '').join(''); try { return txt ? JSON.parse(txt) : null; } catch { return null; }
+}
+async function stateWrite(id, have) {
+  const base = `https://sheets.googleapis.com/v4/spreadsheets/${id}`;
+  if (!have.includes('Estado')) await gSend(`${base}:batchUpdate`, 'POST', { requests: [{ addSheet: { properties: { title: 'Estado' } } }] });
+  const json = JSON.stringify(stateSnap()), rows = [['estado del cockpit (no editar a mano)']]; for (let i = 0; i < json.length; i += 40000) rows.push([json.slice(i, i + 40000)]);
+  await gSend(`${base}/values/Estado!A1:A200:clear`, 'POST', {});
+  await gSend(`${base}/values/Estado!A1:A${rows.length}?valueInputOption=RAW`, 'PUT', { values: rows });
+}
+let pushT;
+function pushState() {
+  if (!S.cfgId) return; S.dirty = true; clearTimeout(pushT);
+  pushT = setTimeout(async () => { if (!GAPI.tok || Date.now() >= GAPI.exp) return; try { await stateWrite(S.cfgId, await sheetTitles(S.cfgId)); S.dirty = false; save(); } catch {} }, 4000);
+}
 const evMs = (v, allDay) => allDay ? new Date(v + 'T00:00:00').getTime() : new Date(v).getTime();
 async function fetchCal() {
   const t0 = new Date(); t0.setHours(0, 0, 0, 0); const t1 = new Date(t0.getTime() + 8 * 864e5);
@@ -902,24 +1044,31 @@ function gxDrive() {
   gToken(true).then(driveSync).catch(e => toast(e.message || 'No se pudo conectar con Google'));
 }
 async function driveSync() {
-  const msgs = []; let gname = 'Seguimiento de gastos BBVA';
+  const msgs = []; let gname = 'Seguimiento de gastos BBVA', pname = 'Seguimiento', remote = null, cfHave = [];
   try {
     const cf = await gFind('Cockpit Config');
     if (cf) {
       const meta = await (await gApi(`https://sheets.googleapis.com/v4/spreadsheets/${cf.id}?fields=sheets.properties.title`)).json();
-      const have = (meta.sheets || []).map(x => x.properties.title);
-      const want = ['Config', 'Metas', 'Desglose', 'Rutinas', 'Radar', 'Intereses'].filter(t => have.includes(t));
+      const have = (meta.sheets || []).map(x => x.properties.title); S.cfgId = cf.id; cfHave = have; try { remote = await stateRead(cf.id, have); } catch {}
+      const want = ['Config', 'Metas', 'Desglose', 'Rutinas', 'Radar', 'Intereses', 'Viaje'].filter(t => have.includes(t));
       const j = await (await gApi(`https://sheets.googleapis.com/v4/spreadsheets/${cf.id}/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&${want.map(t => 'ranges=' + encodeURIComponent(t + '!A1:H300')).join('&')}`)).json();
       const T = {}; (j.valueRanges || []).forEach(v => { T[v.range.split('!')[0].replace(/'/g, '')] = v.values; });
-      const c = parseCfg(T); if (c.gastos) gname = c.gastos; applyCfg(c);
+      const c = parseCfg(T); if (c.gastos) gname = c.gastos; if (c.precios) pname = c.precios; applyCfg(c);
       msgs.push(`${c.list.length} metas`, `${c.routines.length} rutinas`);
     } else msgs.push('no encuentro la hoja «Cockpit Config»');
+    const sg = await gFindSheet(pname);
+    if (sg) {
+      const jj = await (await gApi(`https://sheets.googleapis.com/v4/spreadsheets/${sg.id}/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&ranges=${['Precios!A1:G300', 'Historial!A1:F2004', 'Radar!A1:G300'].map(encodeURIComponent).join('&ranges=')}`)).json();
+      const TT = {}; (jj.valueRanges || []).forEach(v => { TT[v.range.split('!')[0].replace(/'/g, '')] = v.values; });
+      const g = parseSeg(TT); applySeg(g); msgs.push(`${g.prices.length} productos`, `${g.radar.length} avisos`);
+    } else msgs.push(`no encuentro la hoja «${pname}»`);
     const xf = await gFind(gname);
     if (xf) {
       const url = xf.mimeType === 'application/vnd.google-apps.spreadsheet' ? `https://www.googleapis.com/drive/v3/files/${xf.id}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet` : `https://www.googleapis.com/drive/v3/files/${xf.id}?alt=media`;
       gxIngest(await (await gApi(url)).arrayBuffer(), 'Drive · ' + xf.name); msgs.push('gastos');
     } else msgs.push(`no encuentro «${gname}»`);
     msgs.push(...await liveRefresh());
+    if (S.cfgId && cfHave.length) { stateMerge(remote); save(); try { await stateWrite(S.cfgId, cfHave); S.dirty = false; msgs.push('estado compartido'); } catch (e) { msgs.push('estado: ' + e.message); } }
     render(); toast('Sincronizado: ' + msgs.join(', '));
   } catch (e) { toast(e.message || 'No se pudo leer Google'); }
 }
@@ -928,7 +1077,7 @@ async function liveTap() {
   catch (e) { toast(e.message || 'No se pudo actualizar'); }
 }
 setInterval(() => { if (GAPI.tok && Date.now() < GAPI.exp && !document.hidden) liveRefresh().then(() => { if (['hoy', 'agenda', 'radar'].includes(ui.tab) && !dlg.open) render(); }).catch(() => {}); }, 5 * 60 * 1000);
-setInterval(() => { if (!document.hidden && !dlg.open && ['hoy', 'agenda'].includes(ui.tab) && S.live.cal.length) render(); }, 30 * 1000);
+setInterval(() => { if (!document.hidden && !dlg.open && (ui.widget || ['hoy', 'agenda'].includes(ui.tab)) && (S.live.cal.length || ui.widget)) render(); }, 30 * 1000);
 
 /* ---------- Agenda ---------- */
 const hhmm = ms => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -944,7 +1093,7 @@ function evRow(e, now) {
 }
 function liveBar() {
   const L = S.live;
-  return `<div class="row between" style="gap:10px;flex-wrap:wrap;margin-bottom:14px"><span class="live">${L.at ? `<span class="pulse"></span>Actualizado ${ago(L.at)}` : 'Sin conectar'}</span><button class="btn sm" data-act="liveTap">${ic('refresh')} ${L.at ? 'Actualizar' : 'Conectar con Google'}</button></div>`;
+  return `<div class="row between" style="gap:10px;flex-wrap:wrap;margin-bottom:14px"><span class="live">${L.at ? `<span class="pulse"></span>Actualizado ${ago(L.at)}${S.dirty ? ' · cambios sin compartir' : ''}` : 'Sin conectar'}</span><button class="btn sm" data-act="liveTap">${ic('refresh')} ${L.at ? 'Actualizar' : 'Conectar con Google'}</button></div>`;
 }
 function viewAgenda() {
   const L = S.live, now = Date.now();
@@ -967,7 +1116,7 @@ function agendaWidget() {
 }
 function mailCard() {
   const L = S.live; if (!L.at) return '';
-  return `<div class="card"><h2><span>${ic('mail')} Correos importantes sin leer</span><span class="num muted">${L.mail.length}</span></h2>${L.mail.length ? `<div class="list">${L.mail.map(m => `<div class="item"><span class="tile">${ic('mail')}</span><div class="grow"><div style="font-weight:600">${esc(m.subj)}</div><div class="muted" style="font-size:13px">${esc(m.from)} · ${ago(m.ts)}</div></div><a href="https://mail.google.com/mail/u/0/#inbox/${esc(m.th)}" target="_blank" rel="noopener">Abrir</a></div>`).join('')}</div>` : '<div class="empty">Nada pendiente. Bandeja bajo control.</div>'}</div>`;
+  return `<div class="card"><h2><span>${ic('mail')} Correos importantes sin leer</span><span class="num muted">${L.mail.length}</span></h2>${L.mail.length ? `<div class="list">${L.mail.map(m => `<div class="item"><span class="tile">${ic('mail')}</span><div class="grow"><div style="font-weight:600">${esc(m.subj)}</div><div class="muted" style="font-size:13px">${esc(m.from)} · ${ago(m.ts)}</div></div><button class="btn sm" data-act="mail2radar" data-id="${esc(m.id)}">${m.added ? 'En el radar' : 'Al radar'}</button><a href="https://mail.google.com/mail/u/0/#inbox/${esc(m.th)}" target="_blank" rel="noopener">Abrir</a></div>`).join('')}</div>` : '<div class="empty">Nada pendiente. Bandeja bajo control.</div>'}</div>`;
 }
 
 /* ---------- Forja (entrenos) ---------- */
@@ -980,7 +1129,32 @@ function exLast(name) { for (let i = F().sessions.length - 1; i >= 0; i--) { con
 function exRecord(name) { return F().sessions.reduce((m, x) => Math.max(m, x.w?.[name] || 0), 0); }
 function weekDays() { return [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + i); return d; }); }
 function elapsed() { const a = F().active; if (!a) return '0:00'; const sec = Math.floor((Date.now() - a.start) / 1000), h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60); return (h ? h + ':' + pad(m) : m) + ':' + pad(sec % 60); }
-setInterval(() => { const t = document.getElementById('ftimer'); if (t) t.textContent = elapsed(); }, 1000);
+const restTxt = () => { if (!ui.rest) return ''; const sec = Math.ceil((ui.rest.end - Date.now()) / 1000); return sec > 0 ? Math.floor(sec / 60) + ':' + pad(sec % 60) : 'Ya'; };
+setInterval(() => {
+  const t = document.getElementById('ftimer'); if (t) t.textContent = elapsed();
+  const r = document.getElementById('frest'); if (r) r.textContent = restTxt();
+  if (ui.rest && !ui.rest.done && Date.now() >= ui.rest.end) { ui.rest.done = true; try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {} toast('Descanso terminado'); }
+}, 1000);
+function exSuggest(name) {
+  const ws = F().sessions.filter(x => x.w?.[name] != null).map(x => x.w[name]); if (ws.length < 2) return null;
+  const a = ws.at(-1), b = ws.at(-2); return a === b && a > 0 ? a + 2.5 : null;
+}
+function sesVol(x) { if (!x.w) return 0; const R = F().routines.find(r => r.id === x.rid); return Object.entries(x.w).reduce((t, [n, kg]) => { const e = R?.ex.find(y => y.n === n); return t + kg * (e?.sets || 3) * (parseInt(e?.reps) || 10); }, 0); }
+function gymSlot() {
+  const L = S.live; if (!L.at) return undefined;
+  const now = Date.now(), start = Math.max(now + 15 * 60e3, new Date().setHours(7, 0, 0, 0)), end = new Date().setHours(22, 0, 0, 0), q = 9e5;
+  let t = Math.ceil(start / q) * q;
+  for (const e of L.cal.filter(e => !e.allDay && e.em > start && e.sm < end).sort((a, b) => a.sm - b.sm)) { if (e.sm - t >= 75 * 60e3) return t; t = Math.max(t, Math.ceil(e.em / q) * q); }
+  return end - t >= 75 * 60e3 ? t : null;
+}
+function exChart(n) {
+  const pts = F().sessions.filter(x => x.w?.[n] != null).map(x => ({ d: x.date, v: x.w[n] })); if (!pts.length) return;
+  const W = 320, H = 130, vs = pts.map(p => p.v), mn = Math.min(...vs), mx = Math.max(...vs), rg = (mx - mn) || 1;
+  const X = i => 14 + (pts.length > 1 ? i * (W - 28) / (pts.length - 1) : (W - 28) / 2), Y = v => H - 22 - (v - mn) / rg * (H - 48);
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+  dlg.innerHTML = `<h3>${esc(n)}</h3><p class="muted" style="margin:4px 0 0">Récord ${kgf(mx)} kg · ${pts.length} sesion${pts.length === 1 ? '' : 'es'}</p><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Evolución del peso" style="margin-top:14px"><path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>${pts.map((p, i) => `<rect x="${X(i) - 3}" y="${Y(p.v) - 3}" width="6" height="6" fill="${p.v === mx ? 'var(--accent)' : 'var(--steel)'}"/>`).join('')}<text x="14" y="${H - 6}">${shortDate(pts[0].d)}</text><text x="${W - 14}" y="${H - 6}" text-anchor="end">${shortDate(pts.at(-1).d)}</text><text x="14" y="12">${kgf(mx)} kg</text></svg><div class="dlg-actions"><button type="button" class="btn" data-x>Cerrar</button></div>`;
+  $('[data-x]', dlg).onclick = () => dlg.close(); dlg.showModal();
+}
 function viewHab() {
   const sub = ui.hab || 'forja';
   const seg = `<div class="seg" style="margin-bottom:14px"><button data-hs="forja" aria-pressed="${sub === 'forja'}">Entreno</button><button data-hs="habitos" aria-pressed="${sub === 'habitos'}">Hábitos</button></div>`;
@@ -997,27 +1171,27 @@ function viewForja() {
   const f = F(), today = dKey(new Date()), days = weekDays();
   const done = new Set(f.sessions.map(x => x.date)), gh = gymHabit(), goal = gh?.goal || 4;
   const wk = days.filter(d => done.has(dKey(d))).length;
-  const strip = `<div class="card"><div class="row between" style="margin-bottom:12px"><h2 style="margin:0;min-height:0">Esta semana</h2><span class="num"><b class="${wk >= goal ? 'good' : ''}" style="font-family:var(--font-d);font-size:22px">${wk}</b><span class="muted">/${goal}</span></span></div><div class="week">${days.map(d => `<div class="${done.has(dKey(d)) ? 'on' : ''} ${dKey(d) === today ? 'today' : ''}"><i></i>${DAYS[d.getDay()]}</div>`).join('')}</div></div>`;
+  const strip = `<div class="card"><div class="row between" style="margin-bottom:12px"><h2 style="margin:0;min-height:0">Esta semana</h2><span class="num"><b class="${wk >= goal ? 'good' : ''}" style="font-family:var(--font-d);font-size:22px">${wk}</b><span class="muted">/${goal}</span></span></div><div class="week">${days.map(d => `<div class="${done.has(dKey(d)) ? 'on' : ''} ${dKey(d) === today ? 'today' : ''}"><i></i>${DAYS[d.getDay()]}</div>`).join('')}</div><div class="muted" style="font-size:13px;margin-top:12px">Carga de la semana: <b class="num">${kgf(f.sessions.filter(x => days.some(d => dKey(d) === x.date)).reduce((t, x) => t + sesVol(x), 0))} kg</b></div></div>`;
   if (f.active) {
     const a = f.active, R = f.routines.find(r => r.id === a.rid), ex = R?.ex || a.ex || [];
-    return `<div class="card nowcard" style="padding-left:22px"><div class="k"><span class="pulse"></span>ENTRENANDO · ${esc(a.name.toUpperCase())}</div><div class="timer" id="ftimer" style="margin-top:6px">${elapsed()}</div></div>
+    return `<div class="card nowcard" style="padding-left:22px"><div class="k"><span class="pulse"></span>ENTRENANDO · ${esc(a.name.toUpperCase())}</div><div class="timer" id="ftimer" style="margin-top:6px">${elapsed()}</div><div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap"><span class="k" style="margin-right:4px">DESCANSO</span>${[45, 60, 90].map(n => `<button class="btn sm" data-act="fRest" data-s="${n}">${n} s</button>`).join('')}<span class="hl" id="frest" style="font-size:24px;margin-left:auto">${restTxt()}</span></div></div>
     <div class="section">${ex.map((e, i) => {
-      const cardio = !e.sets, last = exLast(e.n), rec = exRecord(e.n), cur = a.w[e.n], isRec = cur != null && rec && cur > rec;
-      return `<div class="exrow"><div class="grow"><h3>${esc(e.n)}${isRec ? ' <span class="rec" style="font-family:var(--font-b);font-size:12px;letter-spacing:0;margin-left:6px">Récord</span>' : ''}</h3><div class="meta">${(e.sets ? `${e.sets} × ${esc(e.reps || '')}` : esc(e.reps || 'cardio')) + (last != null ? ` · último ${kgf(last)} kg` : '')}</div></div>
+      const cardio = !e.sets, sug = exSuggest(e.n), last = exLast(e.n), rec = exRecord(e.n), cur = a.w[e.n], isRec = cur != null && rec && cur > rec;
+      return `<div class="exrow"><div class="grow"><h3>${esc(e.n)}${isRec ? ' <span class="rec" style="font-family:var(--font-b);font-size:12px;letter-spacing:0;margin-left:6px">Récord</span>' : ''}</h3><div class="meta">${(e.sets ? `${e.sets} × ${esc(e.reps || '')}` : esc(e.reps || 'cardio')) + (last != null ? ` · último ${kgf(last)} kg` : '') + (sug ? ` · prueba ${kgf(sug)} kg` : '')}</div></div>
       ${cardio ? `<button class="chk" role="checkbox" aria-checked="${!!a.done[e.n]}" data-act="fTick" data-i="${i}" aria-label="Hecho">${a.done[e.n] ? ic('check') : ''}</button>` : `<label class="kg"><input inputmode="decimal" placeholder="—" value="${cur != null ? esc(kgf(cur)) : ''}" data-fw="${esc(e.n)}" aria-label="Peso ${esc(e.n)}"><span>kg</span></label>`}</div>`;
     }).join('')}</div>
     <div class="section"><button class="btn go wide" data-act="fFinish">${ic('check')} Terminar y marcar como hecho</button><div class="row" style="justify-content:center;margin-top:10px"><button class="btn sm" data-act="fDiscard">Descartar entreno</button></div></div>`;
   }
-  const todayR = f.routines.filter(r => r.day === new Date().getDay());
+  const todayR = f.routines.filter(r => r.day === new Date().getDay()), slot = gymSlot();
   const doneToday = done.has(today);
   const last = f.sessions.slice(-8).reverse();
   const recs = [...new Set(f.sessions.flatMap(x => Object.keys(x.w || {})))].map(n => [n, exRecord(n)]).sort((a, b) => b[1] - a[1]).slice(0, 6);
   const first = !f.routines.length ? `<div class="card" style="text-align:center;padding:26px 18px"><h2 style="justify-content:center">Sin rutinas</h2><div class="muted" style="margin:6px auto 16px;max-width:380px">Defínelas en la pestaña «Rutinas» de tu hoja «Cockpit Config» y pulsa Sincronizar, o crea una aquí.</div><div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="gxDrive">Sincronizar con Google</button><button class="btn" data-act="fNew">Crear rutina</button></div></div>` : '';
-  const hoy = f.routines.length ? `<div class="card nowcard" style="padding-left:22px"><div class="k">${doneToday ? 'HECHO HOY' : 'HOY'}</div>${todayR.length ? todayR.map(r => `<div class="row between" style="margin-top:6px;gap:12px"><div class="grow"><div class="timer">${esc(r.name)}</div><div class="muted" style="margin-top:4px">${r.ex.length} ejercicio${r.ex.length === 1 ? '' : 's'}</div></div><button class="btn primary" data-act="fStart" data-r="${r.id}">${ic('play')} Comenzar</button></div>`).join('') : `<div class="timer" style="margin-top:6px">Día de descanso</div><div class="muted" style="margin-top:4px">Si entrenas igualmente, elige una rutina abajo.</div>`}
+  const hoy = f.routines.length ? `<div class="card nowcard" style="padding-left:22px"><div class="k">${doneToday ? 'HECHO HOY' : 'HOY'}</div>${todayR.length ? todayR.map(r => `<div class="row between" style="margin-top:6px;gap:12px"><div class="grow"><div class="timer">${esc(r.name)}</div><div class="muted" style="margin-top:4px">${r.ex.length} ejercicio${r.ex.length === 1 ? '' : 's'}${slot === undefined || doneToday ? '' : slot ? ` · te encaja a las ${hhmm(slot)}` : ' · hoy tienes el día lleno'}</div></div><button class="btn primary" data-act="fStart" data-r="${r.id}">${ic('play')} Comenzar</button></div>`).join('') : `<div class="timer" style="margin-top:6px">Día de descanso</div><div class="muted" style="margin-top:4px">Si entrenas igualmente, elige una rutina abajo.</div>`}
     <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="fQuick" ${doneToday ? 'disabled' : ''}>${ic('check')} Marcar hoy como hecho</button></div></div>` : '';
   const others = f.routines.length ? `<div class="card"><h2><span>${ic('dumb')} Rutinas</span><button class="btn sm" data-act="fNew">+ Rutina</button></h2><div class="list">${f.routines.map(r => `<div class="item"><span class="tile">${ic('dumb')}</span><div class="grow"><div style="font-weight:600">${esc(r.name)}</div><div class="muted" style="font-size:13px">${r.day != null ? DAYS[r.day] + ' · ' : ''}${r.ex.length} ejercicio${r.ex.length === 1 ? '' : 's'}</div></div><button class="btn sm" data-act="fStart" data-r="${r.id}">Comenzar</button><button class="xbtn" data-act="fDel" data-r="${r.id}" aria-label="Borrar rutina">${ic('x')}</button></div>`).join('')}</div></div>` : '';
   const hist = `<div class="grid g2"><div class="card"><h2>Últimos entrenos</h2>${last.length ? `<div class="list">${last.map(x => `<div class="item"><div class="grow"><div style="font-weight:600">${esc(x.name)}</div><div class="muted" style="font-size:13px">${new Date(x.date + 'T12:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}${x.dur ? ' · ' + dur(x.dur) : ''}${x.quick ? ' · sin detalle' : ''}</div></div></div>`).join('')}</div>` : '<div class="empty">Aún no hay entrenos guardados.</div>'}</div>
-    <div class="card"><h2>Récords</h2>${recs.length ? `<div class="list">${recs.map(([n, v]) => `<div class="item"><span class="grow">${esc(n)}</span><b class="num" style="font-family:var(--font-d);font-size:18px">${kgf(v)} kg</b></div>`).join('')}</div>` : '<div class="empty">Los récords salen de los pesos que anotes.</div>'}</div></div>`;
+    <div class="card"><h2>Récords</h2>${recs.length ? `<div class="list">${recs.map(([n, v]) => `<div class="item" data-act="fChart" data-n="${esc(n)}" style="cursor:pointer"><span class="grow">${esc(n)}</span><b class="num" style="font-family:var(--font-d);font-size:18px">${kgf(v)} kg</b></div>`).join('')}</div>` : '<div class="empty">Los récords salen de los pesos que anotes.</div>'}${recs.length ? '<p class="muted" style="font-size:12px;margin:10px 0 0">Toca un ejercicio para ver su evolución.</p>' : ''}</div></div>`;
   return strip + `<div class="section">${first}${hoy}</div><div class="section">${others}</div><div class="section">${hist}</div>`;
 }
 function fStart(rid) {
@@ -1136,7 +1310,20 @@ function gxHoy(V) {
     <div class="card kpi"><h2>Ahorro neto de ${esc(s.mon)}</h2><div class="v num ${s.nv < 0 ? 'bad' : 'good'}">${gxM(s.nv)}</div><div class="s">${gxM(s.ing)} entra · ${gxM(s.gas)} sale</div></div>
     <div class="card kpi"><h2>Bolsa variable</h2><div class="v num ${s.left < 0 ? 'bad' : ''}">${gxM(s.left)}</div><div class="s">${gxM(s.spent)} de ${gxM(s.bolsa)} este mes</div><div class="sp"></div><div class="bar ${s.spent > s.bolsa ? 'over' : ''}"><i style="width:${s.pctB}%"></i></div></div></div>
   ${G.nota ? `<p class="muted" style="font-size:13px;margin:12px 2px 0">${esc(G.nota)}</p>` : ''}
-  ${s.pend.length ? `<div class="card section"><h2>Por contabilizar <span class="num">${gxM(s.pt)}</span></h2><div class="muted" style="font-size:14px">${s.pend.length} pago${s.pend.length > 1 ? 's' : ''} con tarjeta. No entran en los totales del mes hasta que BBVA los confirme.</div></div>` : ''}`;
+  ${s.pend.length ? `<div class="card section"><h2>Por contabilizar <span class="num">${gxM(s.pt)}</span></h2><div class="muted" style="font-size:14px">${s.pend.length} pago${s.pend.length > 1 ? 's' : ''} con tarjeta. No entran en los totales del mes hasta que BBVA los confirme.</div></div>` : ''}
+  ${gxExtras(G, s)}`;
+}
+function gxExtras(G, s) {
+  const rec = gxRecurring(G), tot = rec.reduce((a, r) => a + r.amt, 0), now = new Date(), d = now.getDate(), D = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const proj = d >= 3 && s.bolsa ? s.spent / d * D : null;
+  const fc = proj == null ? '' : `<div class="card section"><h2>Previsión de la bolsa variable</h2><div class="stats3"><div><b class="num">${gxM(proj)}</b><span>al ritmo actual a fin de mes</span></div><div><b class="num">${gxM(s.bolsa)}</b><span>bolsa del mes</span></div><div><b class="num ${proj > s.bolsa ? 'bad' : 'good'}">${gxM(Math.abs(s.bolsa - proj))}</b><span>${proj > s.bolsa ? 'de más' : 'de margen'}</span></div></div><p class="muted" style="font-size:12px;margin:12px 0 0">Extrapolación simple de lo gastado hasta hoy; no sustituye al Resumen del Excel.</p></div>`;
+  const rc = rec.length ? `<div class="card section"><h2><span>Pagos recurrentes</span><span class="num">${gxM(tot)}/mes</span></h2><div class="list">${rec.map(r => `<div class="item"><div class="grow"><div>${esc(r.name)}</div><div class="muted" style="font-size:12px">visto en ${r.n} meses</div></div><b class="num">${gxM(r.amt)}</b></div>`).join('')}</div><p class="muted" style="font-size:12px;margin:12px 0 0">Detectados porque se repiten con un importe parecido.</p></div>` : '';
+  return fc + rc;
+}
+function gxRecurring(G) {
+  const m = new Map();
+  G.mov.filter(x => x.status === 'Contabilizado' && x.amount < 0).forEach(x => { const k = x.concept.toLowerCase().replace(/\d+/g, ' ').replace(/[^a-záéíóúüñ ]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 30); if (k.length < 3) return; const o = m.get(k) || { name: x.concept, months: new Set(), amts: [] }; o.months.add(x.date.slice(0, 7)); o.amts.push(Math.abs(x.amount)); m.set(k, o); });
+  return [...m.values()].filter(o => o.months.size >= 2 && Math.max(...o.amts) / Math.min(...o.amts) <= 1.15).map(o => ({ name: o.name, n: o.months.size, amt: [...o.amts].sort((a, b) => a - b)[Math.floor(o.amts.length / 2)] })).sort((a, b) => b.amt - a.amt).slice(0, 12);
 }
 function gxPlan({ G, R }) {
   const sel = ui.gxm ?? (G.months.length - 1), isAvg = sel === 'avg';
@@ -1200,7 +1387,7 @@ function ensureMetas() {
   }
   return S.metas;
 }
-function metasCalc() {
+function metasCalc(delta = 0) {
   const M = ensureMetas(), G = S.gx, now = new Date();
   let saldo = null, src = '', rit = null, ritSrc = '', pendientes = 0;
   if (G) {
@@ -1213,6 +1400,7 @@ function metasCalc() {
   if (saldo == null && M.saldoManual != null) { saldo = M.saldoManual; src = 'escrito a mano'; }
   if (M.ritmoManual != null) { rit = M.ritmoManual; ritSrc = 'escrito a mano'; }
   if (saldo == null) return { M, saldo: null, rit };
+  saldo -= delta;
   const margen = saldo - M.baseline, locked = margen < 0, dispo = Math.max(0, margen);
   let rem = dispo, cum = 0;
   const etaOf = need => (need <= 0 ? null : rit > 0 ? new Date(now.getTime() + need / rit * 30.4375 * 864e5) : undefined);
@@ -1309,14 +1497,16 @@ function animateMetas(fresh = true) {
 
 /* ---------- render ---------- */
 
-const VIEWS = { hoy: viewHoy, agenda: viewAgenda, radar: viewRadar, precios: viewPrecios, gastos: viewGastos, fin: viewFin, metas: viewMetas, hab: viewHab, int: viewInt, notas: viewNotas };
+const VIEWS = { hoy: viewHoy, agenda: viewAgenda, radar: viewRadar, precios: viewPrecios, gastos: viewGastos, fin: viewFin, metas: viewMetas, hab: viewHab, viaje: viewViaje, widgets: viewWidgets, int: viewInt, notas: viewNotas };
 const FABS = {
   fin: () => ui.fin === 'mov' ? ['+ Movimiento', addTx] : ui.fin === 'pat' ? ['+ Cuenta', addAcc] : null,
   radar: () => ['+ Radar', addRadar], precios: () => ['+ Producto', addPrice], metas: () => ['+ Meta', metaAdd], hab: () => (ui.hab === 'habitos' ? ['+ Hábito', addHab] : null), int: () => ['+ Lista', addList]
 };
 function render() {
   document.documentElement.dataset.theme = S.theme === 'auto' ? '' : S.theme;
-  $('#nav').innerHTML = `<div class="brand">Cockpit</div>` + NAV_GROUPS.map(([g, ks]) => `<div class="navh x2">${g}</div>` + ks.map(k => `<button data-tab="${k}" class="${NAV_MAIN.includes(k) ? '' : 'x2'}" aria-current="${ui.tab === k}">${icon(k)}<span>${tabName(k)}</span></button>`).join('')).join('') + `<button class="more" data-act="more" aria-current="${!NAV_MAIN.includes(ui.tab)}">${icon('mas')}<span>Más</span></button>`;
+  document.body.classList.toggle('wmode', !!ui.widget);
+  if (ui.widget) { $('#view').innerHTML = widgetHTML(ui.widget); return; }
+  $('#nav').innerHTML = `<div class="brand">Cockpit</div>` + NAV_GROUPS.map(([g, ks]) => `<div class="navh x2">${g}</div>` + ks.map(k => `<button data-tab="${k}" class="${NAV_MAIN.includes(k) ? '' : 'x2'}" aria-current="${ui.tab === k}">${icon(k)}${k === 'precios' && priceAlerts().length ? '<i class="nb"></i>' : ''}<span>${tabName(k)}</span></button>`).join('')).join('') + `<button class="more" data-act="more" aria-current="${!NAV_MAIN.includes(ui.tab)}">${icon('mas')}<span>Más</span></button>`;
   $('#hello').textContent = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
   $('#title').textContent = ui.tab === 'hoy' ? `${greet()}${S.name ? ', ' + S.name : ''}` : TABS.find(t => t[0] === ui.tab)[1];
   const y = scrollY;
@@ -1327,7 +1517,7 @@ function render() {
   const fresh = ui.lastTab !== ui.tab; ui.lastTab = ui.tab;
   animateMetas(fresh);
 }
-const commit = () => { save(); render(); };
+const commit = () => { save(); render(); pushState(); };
 
 /* ---------- actions ---------- */
 function addTx() {
@@ -1408,12 +1598,21 @@ document.addEventListener('click', e => {
     case 'delR': S.radar = S.radar.filter(x => x.id !== D.id); return commit();
     case 'csv': return exportCSV();
     case 'liveTap': return liveTap();
+    case 'wOpen': ui.widget = D.s; return render();
+    case 'wClose': ui.widget = null; ui.tab = 'hoy'; return render();
+    case 'vTick': { S.viaje.done = S.viaje.done || {}; const t = S.viaje.items.find(x => x.n === D.k); S.viaje.done[D.k] = !(S.viaje.done[D.k] ?? t?.done); return commit(); }
+    case 'mail2radar': { const m = S.live.mail.find(x => x.id === D.id); if (!m || m.added) return; const t = new Date(Date.now() + 864e5); return form('Convertir en recordatorio', [{ name: 'title', label: 'Qué hay que hacer', required: true, value: m.subj }, { name: 'date', label: 'Fecha', type: 'date', value: dKey(t) }, { name: 'prio', label: 'Prioridad', type: 'select', options: ['Alta', 'Media', 'Baja'], value: 'Media' }], d => { S.radar.push({ id: uid(), type: 'Email', title: d.title.trim(), date: d.date || '', prio: d.prio, status: 'Pendiente', note: m.from, link: `https://mail.google.com/mail/u/0/#inbox/${m.th}` }); m.added = true; commit(); toast('Añadido al radar'); }, { ok: 'Añadir' }); }
+    case 'shPrice': { const sh = ui.share || {}; dlg.close(); return form('Vigilar precio', [{ name: 'name', label: 'Producto', required: true, value: sh.name }, { name: 'target', label: 'Precio objetivo (€, opcional)', inputmode: 'decimal' }], d => { let host = ''; try { host = new URL(sh.link).hostname.replace(/^www\./, ''); } catch {} S.prices.push({ id: uid(), name: d.name.trim(), store: host, link: sh.link || '', target: Math.abs(num(d.target)) || 0, status: 'Vigilando', history: [] }); ui.tab = 'precios'; commit(); toast('Añadido a Precios (solo en este dispositivo)'); }, { ok: 'Añadir', text: 'Instinct no lo verá hasta que lo añadas a la hoja Seguimiento.' }); }
+    case 'shRadar': { const sh = ui.share || {}; dlg.close(); return form('Añadir al radar', [{ name: 'title', label: 'Qué es', required: true, value: sh.name || sh.link }, { name: 'date', label: 'Fecha (opcional)', type: 'date' }, { name: 'prio', label: 'Prioridad', type: 'select', options: ['Alta', 'Media', 'Baja'], value: 'Media' }], d => { S.radar.push({ id: uid(), type: 'Otro', title: d.title.trim(), date: d.date || '', prio: d.prio, status: 'Pendiente', note: '', link: sh.link || '' }); ui.tab = 'radar'; commit(); }, { ok: 'Añadir' }); }
+    case 'whatIf': return whatIf(D.id);
     case 'fStart': return fStart(D.r);
     case 'fFinish': return fFinish();
     case 'fDiscard': return confirmBox('¿Descartar el entreno?', 'No se guarda nada de esta sesión.', () => { F().active = null; commit(); }, 'Descartar');
     case 'fQuick': { const day = dKey(new Date()); F().sessions.push({ id: uid(), date: day, rid: null, name: (F().routines.find(r => r.day === new Date().getDay()) || {}).name || 'Entreno', quick: true, w: {} }); markGym(day); commit(); return toast('Entreno de hoy marcado como hecho'); }
     case 'fTick': { const a = F().active, e = (F().routines.find(r => r.id === a.rid)?.ex || a.ex)[+D.i]; a.done[e.n] = !a.done[e.n]; return commit(); }
     case 'fNew': return fNew();
+    case 'fRest': ui.rest = { end: Date.now() + +D.s * 1000, done: false }; return render();
+    case 'fChart': return exChart(D.n);
     case 'fDel': return confirmBox('¿Borrar rutina?', 'Los entrenos ya guardados se conservan.', () => { F().routines = F().routines.filter(r => r.id !== D.r); commit(); }, 'Borrar');
     case 'bbva': return importBBVA();
     case 'more': dlg.innerHTML = `<h3>Más</h3>${NAV_GROUPS.map(([g, ks]) => ks.filter(k => !NAV_MAIN.includes(k)).length ? `<div class="k" style="padding:14px 12px 2px">${g}</div><div class="sheet" style="margin-top:2px">${ks.filter(k => !NAV_MAIN.includes(k)).map(k => `<button data-tab="${k}" aria-current="${ui.tab === k}">${icon(k)}${tabName(k)}</button>`).join('')}</div>` : '').join('')}<div class="sheet"><button data-act="settings">${icon('edit')}Ajustes</button></div>`; dlg.showModal(); return;
@@ -1453,9 +1652,25 @@ document.addEventListener('change', e => { const t = e.target; if (t.dataset.gxf
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
 $('#settingsBtn').onclick = settings;
 
+function shareDialog(name, link) {
+  ui.share = { name, link };
+  dlg.innerHTML = `<h3>Guardar en el cockpit</h3><p class="muted" style="word-break:break-word;margin:4px 0 0">${esc(name || link)}</p><div class="sheet"><button data-act="shPrice">${icon('precios')}Vigilar precio</button><button data-act="shRadar">${icon('radar')}Añadir al radar</button></div>`;
+  dlg.showModal();
+}
+function handleLaunch() {
+  const q = new URLSearchParams(location.search); if (![...q.keys()].length) return;
+  const go = q.get('go'); if (go && VIEWS[go]) ui.tab = go;
+  const w = q.get('w'); if (w) ui.widget = ['s', 'm', 'l'].includes(w) ? w : 'm';
+  const t = q.get('title') || '', x = q.get('text') || '', u = q.get('url') || '';
+  const link = (u.match(/https?:\/\/\S+/) || x.match(/https?:\/\/\S+/) || [''])[0];
+  const name = (t || x.replace(/https?:\/\/\S+/g, '')).trim().slice(0, 120);
+  try { history.replaceState(null, '', location.pathname); } catch {}
+  if (link || name) setTimeout(() => shareDialog(name, link), 400);
+}
+handleLaunch();
 render();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
-window.__cockpit = { get S() { return S; }, ui, render, gxView, gxIngest, parseCfg, applyCfg };
+window.__cockpit = { widgetHTML, weekCard, exSuggest, gymSlot, stateSnap, stateMerge, whatIf, gxRecurring, get S() { return S; }, ui, render, gxView, gxIngest, parseCfg, applyCfg, parseSeg, applySeg };
 })();
 </script>
 </body>
