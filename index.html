@@ -223,6 +223,12 @@ h2 .ico,.row .ico{color:var(--muted)}
 .mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .mstats div{min-width:0}.mstats .k{display:block;margin-bottom:2px}.mstats b{font-family:var(--font-d);font-size:19px;font-weight:600;letter-spacing:.01em;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mnote{margin-top:12px;font-size:14px;color:var(--muted)}.mnote.warn{color:var(--warn)}
+.badge.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,var(--panel2))}
+.gauge.bad>i{background:var(--bad)}
+.msum{position:sticky;top:0;z-index:5;display:flex;gap:20px;align-items:center;padding:10px 16px;margin:0 0 14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--ctl)}
+.msi{min-width:0}.msi .k{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.msi b{font-family:var(--font-d);font-size:20px;font-weight:600}
+.stale b,.stale .pctbig,.stale .mamt{opacity:.5}
+.stalebox{border-color:color-mix(in srgb,var(--warn) 60%,var(--line));background:color-mix(in srgb,var(--warn) 10%,var(--panel));color:var(--warn)}.stalebox .muted{color:var(--text)}
 .mact{display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .mact .sp2{flex:1}
 .stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;margin-top:18px}
@@ -276,6 +282,10 @@ body.busy [data-act="gxDrive"] svg,body.busy [data-act="liveTap"] svg{transform-
 .chip{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:var(--ctl);min-height:36px;padding:0 14px;font-weight:550;cursor:pointer}
 .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 @media (prefers-reduced-motion:no-preference){.micbtn.on{animation:rec 1.2s ease-in-out infinite}@keyframes rec{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}50%{box-shadow:0 0 0 9px transparent}}}
+#capFab{display:none;position:fixed;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));z-index:15;width:54px;height:54px;border-radius:var(--ctl);border:1px solid var(--line);background:var(--panel2);color:var(--accent);box-shadow:var(--shadow),0 6px 18px rgba(0,0,0,.35);place-items:center;cursor:pointer}
+#capFab svg{width:24px;height:24px}
+@media (max-width:859px){#capFab{display:grid}#capBtn{display:none}}
+body.wmode #capFab{display:none}
 </style>
 </head>
 <body>
@@ -436,6 +446,7 @@ function toast(msg) {
 
 /* ---------- carga ---------- */
 document.body.insertAdjacentHTML('afterbegin', '<div id="topbar" aria-hidden="true"></div>');
+document.body.insertAdjacentHTML('beforeend', `<button id="capFab" data-act="capOpen" aria-label="Captura rápida por voz">${ic('mic')}</button>`);
 function busy(v) {
   ui.busy = v; document.body.classList.toggle('busy', !!v);
   if (v) { if (SKEL_TABS[ui.tab]?.()) render(); }
@@ -863,6 +874,49 @@ const gxDate = v => {
   const s = String(v ?? '').trim(); if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : '';
 };
+function parseFin(wb) {
+  const X = window.XLSX, norm = t => t.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const sh = n => { const k = wb.SheetNames.find(t => norm(t) === n); return k ? X.utils.sheet_to_json(wb.Sheets[k], { header: 1, raw: true, defval: null }) : null; };
+  const txt = v => v == null ? '' : typeof v === 'number' && v > 30000 ? new Date(Date.UTC(1899, 11, 30) + v * 864e5).toLocaleDateString('es-ES', { month: 'short', year: 'numeric', timeZone: 'UTC' }).replace('.', '') : String(v).trim();
+  const pair = (r, j) => { for (let k = j + 1; k < r.length; k++) if (r[k] != null && String(r[k]).trim() !== '') return r[k]; return null; };
+  const out = { pres: null, g50: null };
+  const lo = sh('prestamo');
+  if (lo) {
+    const P = { plan: [], pend: null, obj: null }; let hi = -1;
+    lo.forEach((r, i) => {
+      if (hi >= 0) { if (typeof r[0] === 'number') P.plan.push({ n: r[0], date: gxDate(r[1]), ini: gxNum(r[2]), extra: gxNum(r[5]), fin: gxNum(r[7]) }); return; }
+      if (/^n[º°o]$/i.test(String(r[0] ?? '').trim())) { hi = i; return; }
+      r.forEach((c, j) => {
+        if (typeof c !== 'string' || (j !== 0 && j !== 3)) return;
+        const l = norm(c), v = pair(r, j);
+        if (j === 0) { if (/^saldo pendiente/.test(l)) P.pend = gxNum(v); else if (/^cuota mensual/.test(l)) P.cuota = gxNum(v); else if (/^aportacion extra/.test(l)) P.extra = gxNum(v); else if (/^meses con/.test(l)) P.meses = gxNum(v); }
+        else if (/^objetivo: saldo/.test(l)) P.obj = gxNum(v); else if (/^saldo real tras/.test(l)) P.proy = gxNum(v); else if (/cumplido/.test(l)) P.ok = /^s[ií]/i.test(String(v ?? ''));
+        else if (/^ultimo pago con/.test(l)) P.finPlan = txt(v); else if (/^ultimo pago sin/.test(l)) P.finSin = txt(v); else if (/^intereses ahorrados/.test(l)) P.ahorrados = gxNum(v);
+      });
+    });
+    if (P.pend != null && P.obj != null) out.pres = P;
+  }
+  const go = sh('objetivo 50%');
+  if (go) {
+    const O = { rows: [] }; let hh = -1, cols = {};
+    go.forEach((r, i) => {
+      const l = norm(String(r[0] ?? ''));
+      if (hh < 0) {
+        if (l === 'gasto') { hh = i; const h = r.map(x => norm(String(x ?? ''))), f = re => h.findIndex(x => re.test(x)); cols = { tope: f(/^tope/), mes: f(/^mes en curso/), est: f(/^estado/) }; }
+        else if (/^mes en curso/.test(l)) O.mes = String(pair(r, 0) ?? '');
+        else if (/^dia del mes/.test(l)) O.dia = gxNum(pair(r, 0));
+        else if (/^dias del mes/.test(l)) O.dias = gxNum(pair(r, 0));
+        else if (/^ritmo esperado/.test(l)) { const v = gxNum(pair(r, 0)); O.ritmo = v != null && v <= 1 ? v * 100 : v; }
+        return;
+      }
+      if (O.stop || !l || /^notas/.test(l)) { O.stop = true; return; }
+      O.rows.push({ name: String(r[0]).trim(), tope: gxNum(r[cols.tope]) || 0, mes: gxNum(r[cols.mes]) || 0, est: String(r[cols.est] ?? '').trim(), total: /^total/.test(l) });
+    });
+    if (O.ritmo == null && O.dia && O.dias) O.ritmo = O.dia / O.dias * 100;
+    if (O.rows.length) out.g50 = O;
+  }
+  return out;
+}
 function parseGx(wb) {
   const X = window.XLSX; if (!X) throw new Error('Falta la librería de Excel.');
   const sh = n => { const k = wb.SheetNames.find(s => s.trim().toLowerCase() === n); return k ? X.utils.sheet_to_json(wb.Sheets[k], { header: 1, raw: true, defval: null }) : null; };
@@ -917,12 +971,13 @@ function parseGx(wb) {
   if (!G.grupos.length) G.grupos = [...new Set(G.mov.map(m => m.group).filter(Boolean))];
   return G;
 }
-function gxIngest(buf, src, type) {
+function gxIngest(buf, src, type, at) {
   const wb = window.XLSX.read(buf, { type: type || 'array' });
   const G = parseGx(wb), old = S.gx;
   G.name = src; if (old) { G.ov = old.ov || {}; G.topes = old.topes || {}; }
   Object.keys(G.ov).forEach(id => { if (!G.mov.some(m => m.id === id)) delete G.ov[id]; });
-  S.gx = G; commit(); toast(G.uncalc ? 'Cargado, pero el Resumen no trae valores calculados' : `Cargado: ${G.mov.length} movimientos`);
+  S.gx = G; try { S.fin = { ...parseFin(wb), at: at || S.fin?.at || null, got: Date.now() }; } catch (e) { console.warn('parseFin', e); }
+  commit(); toast(G.uncalc ? 'Cargado, pero el Resumen no trae valores calculados' : `Cargado: ${G.mov.length} movimientos`);
 }
 function gxPickFile() {
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -938,7 +993,7 @@ function parseCfg(T) {
   const cfg = {}; rows(T.Config).forEach(r => { cfg[str(r[0]).toLowerCase()] = r[1]; });
   const des = {}; rows(T.Desglose).forEach(r => { const k = str(r[0]).toLowerCase(); (des[k] = des[k] || []).push({ n: str(r[1]), v: n(r[2]) || 0 }); });
   const list = rows(T.Metas).map(r => {
-    const name = str(r[0]), kind = /saldo/i.test(str(r[2])) ? 'saldo' : 'prio';
+    const name = str(r[0]), tipo = str(r[2]).toLowerCase(), kind = /saldo/.test(tipo) ? 'saldo' : /pr[eé]stamo/.test(tipo) ? 'prestamo' : /aparte|fuera/.test(tipo) ? 'aparte' : 'prio';
     const g = { id: uid(), kind, name, sub: str(r[1]) };
     const items = des[name.toLowerCase()]; if (items) g.items = items;
     const t = n(r[3]); if (t != null) g.target = t;
@@ -993,23 +1048,35 @@ function applyCfg(c) {
 const GSCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly';
 const GX_CLIENT_ID = '579903878582-fjpq7fvri1b7sjh6rcvd1qd61ai0abuf.apps.googleusercontent.com';
 const GAPI = { tok: null, exp: 0 };
+const BR = () => (S.gxCfg && S.gxCfg.bridgeUrl && S.gxCfg.bridgeKey) ? S.gxCfg : null;
+function gOk() { return !!(BR() || (GAPI.tok && Date.now() < GAPI.exp)); }
+async function bridge(action, body = {}) {
+  const c = BR(); if (!c) throw new Error('Puente sin configurar');
+  const res = await fetch(c.bridgeUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ k: c.bridgeKey, a: action, app: /^https:/.test(location.href) ? location.origin + location.pathname : undefined, ...body }) });
+  if (!res.ok) throw new Error('Puente: HTTP ' + res.status);
+  let j; try { j = await res.json(); } catch { throw new Error('El puente no respondió bien. Revisa la URL'); }
+  if (j.error) throw new Error(j.error === 'auth' ? 'Clave del puente incorrecta' : 'Puente: ' + j.error);
+  return j;
+}
+try { const t = JSON.parse(localStorage.getItem('cockpit.gtok') || 'null'); if (t && t.exp > Date.now()) { GAPI.tok = t.tok; GAPI.exp = t.exp; } } catch {}
 function gToken(force) {
   return new Promise((ok, no) => {
+    if (BR()) return ok('puente');
     if (!force && GAPI.tok && Date.now() < GAPI.exp) return ok(GAPI.tok);
     const cfg = S.gxCfg || (S.gxCfg = { clientId: '' });
     if (!cfg.clientId) { cfg.clientId = GX_CLIENT_ID; save(); }
     const go = () => google.accounts.oauth2.initTokenClient({
       client_id: cfg.clientId, scope: GSCOPES,
-      callback: r => { if (r.error) return no(new Error('Google: ' + r.error)); GAPI.tok = r.access_token; GAPI.exp = Date.now() + (r.expires_in - 90) * 1000; ok(GAPI.tok); },
+      callback: r => { if (r.error) return no(new Error('Google: ' + r.error)); GAPI.tok = r.access_token; GAPI.exp = Date.now() + (r.expires_in - 90) * 1000; cfg.linked = true; save(); try { localStorage.setItem('cockpit.gtok', JSON.stringify({ tok: GAPI.tok, exp: GAPI.exp })); } catch {} ok(GAPI.tok); },
       error_callback: e => no(new Error('Google: ' + (e.type || 'no se pudo abrir el login')))
-    }).requestAccessToken();
+    }).requestAccessToken(cfg.linked ? { prompt: '' } : {});
     if (window.google?.accounts?.oauth2) return go();
     const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.onload = go; sc.onerror = () => no(new Error('No se pudo cargar Google (¿sin conexión?)')); document.head.appendChild(sc);
   });
 }
 const gSend = async (u, method, body) => { const res = await fetch(u, { method, headers: { Authorization: 'Bearer ' + GAPI.tok, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!res.ok) throw new Error('Google respondió ' + res.status + ' (escritura)'); return res.json(); };
 const gApi = async u => { const res = await fetch(u, { headers: { Authorization: 'Bearer ' + GAPI.tok } }); if (!res.ok) throw new Error('Google respondió ' + res.status + ' (' + u.split('/')[2].split('.')[0] + ')'); return res; };
-const gFind = async name => { const q = `name contains '${name.replace(/'/g, "\\'")}' and trashed=false`; const j = await (await gApi('https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime%20desc&fields=files(id,name,mimeType)&q=' + encodeURIComponent(q))).json(); return j.files && j.files[0]; };
+const gFind = async name => { const q = `name contains '${name.replace(/'/g, "\\'")}' and trashed=false`; const j = await (await gApi('https://www.googleapis.com/drive/v3/files?pageSize=5&orderBy=modifiedTime%20desc&fields=files(id,name,mimeType,modifiedTime)&q=' + encodeURIComponent(q))).json(); return j.files && j.files[0]; };
 const gFindSheet = async name => { const q = `name = '${name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`; const j = await (await gApi('https://www.googleapis.com/drive/v3/files?pageSize=3&orderBy=modifiedTime%20desc&fields=files(id,name)&q=' + encodeURIComponent(q))).json(); return j.files && j.files[0]; };
 const sheetTitles = async id => ((await (await gApi(`https://sheets.googleapis.com/v4/spreadsheets/${id}?fields=sheets.properties.title`)).json()).sheets || []).map(x => x.properties.title);
 const stateSnap = () => ({ v: 1, t: Date.now(),
@@ -1050,7 +1117,7 @@ async function stateWrite(id, have) {
 let pushT;
 function pushState() {
   if (!S.cfgId) return; S.dirty = true; clearTimeout(pushT);
-  pushT = setTimeout(async () => { if (!GAPI.tok || Date.now() >= GAPI.exp) return; try { await stateWrite(S.cfgId, await sheetTitles(S.cfgId)); S.dirty = false; save(); } catch {} }, 4000);
+  pushT = setTimeout(async () => { if (!gOk()) return; try { if (BR()) await bridge('statePut', { text: JSON.stringify(stateSnap()) }); else await stateWrite(S.cfgId, await sheetTitles(S.cfgId)); S.dirty = false; save(); } catch {} }, 4000);
 }
 const evMs = (v, allDay) => allDay ? new Date(v + 'T00:00:00').getTime() : new Date(v).getTime();
 async function fetchCal() {
@@ -1080,7 +1147,15 @@ async function fetchMail() {
   }));
   return ms.filter(Boolean).sort((a, b) => b.ts - a.ts);
 }
+function applyLive(j) {
+  const out = [], er = j.errors || {};
+  if (!er.cal) { S.live.cal = j.cal || []; out.push(S.live.cal.length + ' eventos'); } else out.push('calendario: ' + er.cal);
+  if (!er.mail) { S.live.mail = j.mail || []; out.push(S.live.mail.length + ' correos'); } else out.push('correo: ' + er.mail);
+  if (!(er.cal && er.mail)) S.live.at = Date.now();
+  save(); return out;
+}
 async function liveRefresh() {
+  if (BR()) return applyLive(await bridge('live'));
   const [cal, mail] = await Promise.allSettled([fetchCal(), fetchMail()]);
   const out = [];
   if (cal.status === 'fulfilled') { S.live.cal = cal.value; out.push(cal.value.length + ' eventos'); } else out.push('calendario: ' + cal.reason.message);
@@ -1093,7 +1168,26 @@ function gxDrive() {
   if (!cfg.clientId) { cfg.clientId = GX_CLIENT_ID; save(); }
   gToken(true).then(driveSync).catch(e => toast(e.message || 'No se pudo conectar con Google'));
 }
-async function driveSync() {
+async function bridgeSync(quiet) {
+  busy(true); const msgs = [];
+  try {
+    const j = await bridge('bundle', { since: S.gxCfg.xAt || 0 });
+    if (j.cfg) { S.cfgId = S.cfgId || 'puente'; const c = parseCfg(j.cfg); applyCfg(c); msgs.push(`${c.list.length} metas`, `${c.routines.length} rutinas`); } else msgs.push('no encuentro la hoja «Cockpit Config»');
+    if (j.seg) { const g = parseSeg(j.seg); applySeg(g); msgs.push(`${g.prices.length} productos`, `${g.radar.length} avisos`); } else msgs.push('no encuentro la hoja de seguimiento');
+    if (j.xlsx && j.xlsx.b64) { gxIngest(Uint8Array.from(atob(j.xlsx.b64), ch => ch.charCodeAt(0)).buffer, 'Drive · ' + j.xlsx.name, undefined, j.xlsx.at); S.gxCfg.xAt = j.xlsx.at; msgs.push('gastos'); }
+    else if (j.xlsx && j.xlsx.same) { if (S.fin) { S.fin.at = j.xlsx.at; S.fin.got = Date.now(); } msgs.push('gastos sin cambios'); } else msgs.push('no encuentro el Excel de gastos');
+    msgs.push(...applyLive(j));
+    if (j.cfg) {
+      let remote = null; try { remote = j.state ? JSON.parse(j.state) : null; } catch {}
+      stateMerge(remote); save();
+      try { await bridge('statePut', { text: JSON.stringify(stateSnap()) }); S.dirty = false; save(); } catch (e) { msgs.push('estado: ' + e.message); }
+    }
+    ui.lastFull = Date.now(); render(); if (!quiet) toast('Sincronizado: ' + msgs.join(', '));
+  } catch (e) { if (!quiet) toast(e.message || 'No se pudo sincronizar'); }
+  finally { busy(false); }
+}
+async function driveSync(quiet) {
+  if (BR()) return bridgeSync(quiet === true);
   busy(true);
   const msgs = []; let gname = 'Seguimiento de gastos BBVA', pname = 'Seguimiento', remote = null, cfHave = [];
   try {
@@ -1116,7 +1210,7 @@ async function driveSync() {
     const xf = await gFind(gname);
     if (xf) {
       const url = xf.mimeType === 'application/vnd.google-apps.spreadsheet' ? `https://www.googleapis.com/drive/v3/files/${xf.id}/export?mimeType=application%2Fvnd.openxmlformats-officedocument.spreadsheetml.sheet` : `https://www.googleapis.com/drive/v3/files/${xf.id}?alt=media`;
-      gxIngest(await (await gApi(url)).arrayBuffer(), 'Drive · ' + xf.name); msgs.push('gastos');
+      gxIngest(await (await gApi(url)).arrayBuffer(), 'Drive · ' + xf.name, undefined, Date.parse(xf.modifiedTime) || null); msgs.push('gastos');
     } else msgs.push(`no encuentro «${gname}»`);
     msgs.push(...await liveRefresh());
     if (S.cfgId && cfHave.length) { stateMerge(remote); save(); try { await stateWrite(S.cfgId, cfHave); S.dirty = false; msgs.push('estado compartido'); } catch (e) { msgs.push('estado: ' + e.message); } }
@@ -1129,7 +1223,7 @@ async function liveTap() {
   catch (e) { toast(e.message || 'No se pudo actualizar'); }
   finally { busy(false); }
 }
-setInterval(() => { if (GAPI.tok && Date.now() < GAPI.exp && !document.hidden) liveRefresh().then(() => { if (['hoy', 'agenda', 'radar'].includes(ui.tab) && !dlg.open) render(); }).catch(() => {}); }, 5 * 60 * 1000);
+setInterval(() => { if (gOk() && !document.hidden) liveRefresh().then(() => { if (['hoy', 'agenda', 'radar'].includes(ui.tab) && !dlg.open) render(); }).catch(() => {}); }, 5 * 60 * 1000);
 setInterval(() => { if (!document.hidden && !dlg.open && (ui.widget || ['hoy', 'agenda'].includes(ui.tab)) && (S.live.cal.length || ui.widget)) render(); }, 30 * 1000);
 
 /* ---------- Captura rápida (voz o texto) ---------- */
@@ -1208,6 +1302,25 @@ function capSave() {
   else { S.notes = (S.notes ? S.notes.replace(/\s+$/, '') + '\n' : '') + new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) + ' · ' + t; where = 'Notas'; }
   dlg.close(); commit(); toast('Guardado en ' + where);
 }
+
+/* ---------- reconexión sin pedir nada ---------- */
+let lastAuto = 0;
+const tokOk = gOk;
+async function autoRefresh() {
+  try { if (!tokOk()) await gToken(true); busy(true); await liveRefresh(); } catch { return; } finally { busy(false); }
+  if (['hoy', 'agenda', 'radar'].includes(ui.tab) && !dlg.open) render();
+}
+// al abrir con el token aún vigente: refresca solo, sin login
+if (BR()) setTimeout(() => driveSync(true), 800);
+else if (tokOk() && S.live?.at) setTimeout(autoRefresh, 600);
+// token caducado: el primer toque (gesto válido para el navegador) lo renueva sin pantalla de consentimiento
+document.addEventListener('click', () => {
+  if (!S.gxCfg?.linked || tokOk() || Date.now() - lastAuto < 120000) return;
+  lastAuto = Date.now(); autoRefresh();
+}, { capture: true, passive: true });
+function finDue() { const now = new Date(), last = Math.max(ui.lastFull || 0, S.fin?.got || 0); for (let i = 0; i < 7; i++) { const d = new Date(now); d.setDate(d.getDate() - i); if (![1, 3, 5].includes(d.getDay())) continue; d.setHours(9, 0, 0, 0); if (d <= now) return d.getTime() > last; } return false; }
+setTimeout(() => { if (BR() && finDue()) driveSync(true); }, 2500);
+document.addEventListener('visibilitychange', () => { if (document.hidden || !tokOk()) return; if (BR() && (Date.now() - (ui.lastFull || 0) > 600000 || finDue())) driveSync(true); else if (S.live?.at && Date.now() - S.live.at > 120000) autoRefresh(); });
 
 /* ---------- Agenda ---------- */
 const hhmm = ms => new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -1517,15 +1630,19 @@ function ensureMetas() {
   }
   return S.metas;
 }
+const finStale = () => { const F = S.fin; if (!F || !F.at) return null; const d = (Date.now() - F.at) / 864e5; return d > 4 ? Math.floor(d) : null; };
+const monthName = iso => new Date(iso + 'T12:00').toLocaleDateString('es-ES', { month: 'long' });
 function metasCalc(delta = 0) {
-  const M = ensureMetas(), G = S.gx, now = new Date();
+  const M = ensureMetas(), G = S.gx, F = S.fin, P = F && F.pres, now = new Date(), iso = now.toISOString().slice(0, 10);
   let saldo = null, src = '', rit = null, ritSrc = '', pendientes = 0;
   if (G) {
     const xs = G.extra.filter(e => /^saldo actual/i.test(e.label) && e.value != null);
-    if (xs.length) { saldo = xs.reduce((s, e) => s + e.value, 0); src = 'Excel de seguimiento'; }
+    if (xs.length) { saldo = xs.reduce((s, e) => s + e.value, 0); src = 'hoja de BBVA'; }
     const neto = gxView(G).R.find(r => /^ahorro neto/i.test(r.label));
     if (neto) { const [a, b] = G.mediaIdx, vs = neto.v.slice(a, b + 1).filter(x => x != null); if (vs.length) { rit = vs.reduce((s, x) => s + x, 0) / vs.length; ritSrc = `media ${G.months[a].label}–${G.months[b].label}`; } }
-    pendientes = G.mov.filter(m => m.status === 'Pendiente').reduce((s, m) => s + Math.abs(m.amount), 0);
+    const pr = G.rows.find(r => r.kind === 'pend'), pv = pr && [...pr.v].reverse().find(x => x != null);
+    pendientes = pv != null ? Math.abs(pv) : G.mov.filter(m => m.status === 'Pendiente').reduce((s, m) => s + Math.abs(m.amount), 0);
+    if (saldo != null) saldo -= pendientes;
   }
   if (saldo == null && M.saldoManual != null) { saldo = M.saldoManual; src = 'escrito a mano'; }
   if (M.ritmoManual != null) { rit = M.ritmoManual; ritSrc = 'escrito a mano'; }
@@ -1540,44 +1657,86 @@ function metasCalc(delta = 0) {
       const falta = Math.max(0, t - saldo), ml = g.deadline ? monthsTo(now, g.deadline) : 0, eta = etaOf(falta), dl = g.deadline ? new Date(g.deadline + 'T12:00') : null;
       return { g, t, kind: 'saldo', pct: t ? Math.min(100, saldo / t * 100) : 0, shown: Math.min(saldo, t), falta, covered: falta <= 0, perMonth: ml > 0 ? falta / ml : falta, ml, eta, dl, late: !!(eta && dl && eta > dl) };
     }
+    if (g.kind === 'aparte') return { g, t, kind: 'aparte', pct: 0, shown: 0, falta: t, covered: false, due: g.due ? new Date(+g.due.slice(0, 4), +g.due.slice(5, 7), 0, 12) : null };
+    if (g.kind === 'prestamo') {
+      const rest = P ? P.plan.filter(p => p.extra > 0 && p.date >= iso).reduce((s, p) => s + p.extra, 0) : 0, nRest = P ? P.plan.filter(p => p.extra > 0 && p.date >= iso).length : 0;
+      const asg = Math.min(rem, rest); rem -= asg; cum += rest;
+      const ini = P ? (P.plan.length ? P.plan[0].ini : P.pend) : null, den = P && ini != null ? ini - P.obj : 0;
+      const amort = den > 0 ? Math.max(0, ini - P.pend) : 0, pct = den > 0 ? Math.min(100, amort / den * 100) : 0;
+      let warn = null;
+      if (P) { const past = P.plan.filter(p => p.extra > 0 && p.date && new Date(p.date + 'T12:00').getTime() + 3 * 864e5 <= now.getTime()), e = past[past.length - 1]; if (e && P.pend > e.fin + 0.5) warn = { mes: monthName(e.date), esperado: e.fin }; }
+      return { g, t: den, kind: 'prestamo', P, pct, shown: amort, falta: P ? Math.max(0, P.pend - P.obj) : 0, covered: !!(P && den > 0 && P.pend <= P.obj), asg, rest, nRest, warn, eta: rest > 0 ? etaOf(cum - margen) : null };
+    }
     const asg = Math.min(rem, t); rem -= asg; cum += t;
-    const falta = t - asg, need = cum - margen, eta = locked ? etaOf(need) : etaOf(need);
+    const falta = t - asg, need = cum - margen, eta = etaOf(need);
     const due = g.due ? new Date(+g.due.slice(0, 4), +g.due.slice(5, 7), 0, 12) : null;
     return { g, t, kind: 'prio', pct: t ? asg / t * 100 : 0, shown: asg, falta, covered: !locked && falta <= 0.005, eta, due, late: !!(eta && due && eta > due), monthsLate: eta && due ? Math.ceil((eta - due) / (30.4375 * 864e5)) : 0 };
   });
-  return { M, saldo, src, rit, ritSrc, margen, locked, dispo, rows, pendientes };
+  return { M, saldo, src, rit, ritSrc, margen, locked, dispo, rows, pendientes, P };
+}
+function gastoCard(stale) {
+  const O = S.fin && S.fin.g50; if (!O) return '';
+  const tot = O.rows.find(r => r.total), lines = O.rows.filter(r => !r.total), ritmo = Math.round(O.ritmo || 0);
+  const st = r => { const p = r.tope > 0 ? r.mes / r.tope * 100 : 0, e = r.est.toLowerCase(); const k = /pasad/.test(e) || (!e && p > 100) ? 'bad' : /alto/.test(e) || (!e && p > ritmo) ? 'warn' : 'ok'; return { p, k, txt: k === 'bad' ? 'Pasado del tope' : k === 'warn' ? 'Ritmo alto' : 'En ritmo' }; };
+  const bcls = { bad: 'alta', warn: 'warn', ok: 'buy' }, gcls = { bad: 'bad', warn: 'late', ok: 'ok' };
+  const T = tot ? st(tot) : null;
+  const short = n => n.replace(/\s*\(.*$/, '');
+  return `<div class="card section${stale ? ' stale' : ''}"><div class="row between" style="align-items:flex-start"><div><h2>Control de gastos</h2><div class="muted" style="font-size:13px">Recorte al 50 % · Ahorramas (60 %) y comercios chinos</div></div>${T ? `<span class="badge ${bcls[T.k]}">${T.txt}</span>` : ''}</div>
+    ${tot ? `<div class="mhead"><div class="pctbig num" data-count="${Math.round(T.p)}">${Math.round(T.p)}%</div><div class="mamt num"><b>${eur(tot.mes)}</b><span> / ${eur(tot.tope)} al mes</span></div></div>
+    <div class="bar lg gauge ${gcls[T.k]}" role="progressbar" aria-valuenow="${Math.round(T.p)}" aria-valuemin="0" aria-valuemax="100" aria-label="Tope usado"><i data-w="${Math.min(100, T.p).toFixed(1)}%" style="width:0"></i></div>
+    <div class="row between muted" style="font-size:13px;margin:8px 0 6px"><span>Tope usado</span><span>Mes transcurrido ${ritmo}%</span></div>
+    <div class="bar gauge" style="height:8px" aria-hidden="true"><i data-w="${Math.min(100, ritmo)}%" style="width:0;background:var(--muted)"></i></div>` : ''}
+    <div class="list" style="margin-top:14px">${lines.map(r => { const x = st(r); return `<div class="item"><div class="grow"><div style="font-weight:600">${esc(short(r.name))}</div><div class="muted" style="font-size:13px">${eur(r.mes)} de ${eur(r.tope)} · ${Math.round(x.p)}%</div></div><span class="badge ${bcls[x.k]}">${x.txt}</span></div>`; }).join('')}</div></div>`;
 }
 function viewMetas() {
-  const C = metasCalc(), M = C.M;
+  const C = metasCalc(), M = C.M, stale = finStale();
   if (C.saldo == null) return `<div class="card" style="text-align:center;padding:28px 18px"><h2 style="justify-content:center">Necesito tu saldo</h2><div class="muted" style="margin:6px auto 16px;max-width:380px">Las metas se calculan con el saldo de tus cuentas. Carga el Excel de seguimiento o escribe el saldo a mano.</div><div class="row" style="gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn primary" data-act="gxFile">Cargar Excel</button><button class="btn" data-act="gxDrive">Sincronizar con Google</button><button class="btn" data-act="metaCfg">Escribir saldo</button></div></div>`;
-  const ok = !C.locked;
-  const head = `<div class="card ${ok ? '' : 'alerta'}"><div class="row between" style="align-items:flex-start"><div><div class="muted" style="font-size:14px;font-weight:550">Colchón intocable</div><div class="pctbig num" style="font-size:38px">${eur(M.baseline)}</div></div><span class="badge ${ok ? 'buy' : 'alta'}">${ok ? `${eur(C.margen)} por encima` : `${eur(-C.margen)} por debajo`}</span></div>
+  const ok = !C.locked, sc = stale ? ' stale' : '';
+  const act = C.rows.find(r => (r.kind === 'prio' || r.kind === 'prestamo') && !r.covered);
+  const sum = `<div class="msum${sc}" role="status"><div class="msi"><span class="k">Saldo</span><b class="num ${ok ? 'good' : 'bad'}">${eur(C.saldo)}</b></div><div class="msi"><span class="k">Disponible</span><b class="num">${eur(C.dispo)}</b></div><div class="msi grow"><span class="k">${act ? esc(act.g.name) : 'Metas'}</span><b class="num">${act ? Math.round(act.pct) + '%' : 'Todas cubiertas'}</b></div></div>`;
+  const old = stale ? `<div class="card section stalebox" role="alert"><b>Datos antiguos</b><div class="muted" style="margin-top:2px">La hoja de BBVA no cambia desde hace ${stale} días (${new Date(S.fin.at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).replace('.', '')}). Las cifras son de esa fecha, no de hoy. Actualiza la hoja y pulsa Sincronizar.</div></div>` : '';
+  const head = `<div class="card ${ok ? '' : 'alerta'}${sc}"><div class="row between" style="align-items:flex-start"><div><div class="muted" style="font-size:14px;font-weight:550">Colchón intocable</div><div class="pctbig num" style="font-size:38px">${eur(M.baseline)}</div></div><span class="badge ${ok ? 'buy' : 'alta'}">${ok ? `Intacto · ${eur(C.margen)} por encima` : `Por debajo · faltan ${eur(-C.margen)}`}</span></div>
     <div class="stats3"><div><b class="num ${ok ? 'good' : 'bad'}">${eur(C.saldo)}</b><span>saldo de tus cuentas</span></div><div><b class="num">${eur(C.dispo)}</b><span>disponible para metas</span></div><div><b class="num">${C.rit != null ? eur(C.rit) + '/mes' : '—'}</b><span>ahorro medio${C.ritSrc ? ' (' + C.ritSrc + ')' : ''}</span></div></div>
     ${ok ? '' : '<p class="bad" style="margin:14px 0 0;font-weight:600">El saldo está por debajo del colchón. El reparto a las metas está bloqueado hasta que lo recuperes.</p>'}
-    <div class="mact"><span class="muted" style="font-size:13px;flex:1;min-width:0">Fuente: ${esc(C.src)}${C.pendientes ? `. ${eur(C.pendientes)} por contabilizar aún sin descontar.` : ''}</span><button class="btn sm" data-act="gxDrive">${ic('refresh')} Sincronizar</button><button class="btn sm" data-act="metaCfg">Ajustes</button></div></div>`;
+    <div class="mact"><span class="muted" style="font-size:13px;flex:1;min-width:0">Fuente: ${esc(C.src)}${C.pendientes ? `. Ya descontados ${eur(C.pendientes)} por contabilizar.` : ''}</span><button class="btn sm" data-act="gxDrive">${ic('refresh')} Sincronizar</button><button class="btn sm" data-act="metaCfg">Ajustes</button></div></div>`;
   const cards = C.rows.map((r, i) => {
-    const g = r.g, locked = C.locked && r.kind === 'prio', late = r.late && !locked && !r.covered;
-    const badge = locked ? '<span class="badge alta">Bloqueada</span>' : r.covered ? '<span class="badge buy">Cubierta</span>' : late ? '<span class="badge alta">Fuera de plazo</span>' : '<span class="badge">En curso</span>';
-    const cls = locked ? 'off' : r.covered ? 'ok' : late ? 'late' : '';
+    const g = r.g, locked = C.locked && (r.kind === 'prio' || r.kind === 'prestamo'), late = r.late && !locked && !r.covered, P = r.P;
+    const badge = r.kind === 'aparte' ? '<span class="badge">Aparte</span>' : r.kind === 'prestamo' && r.warn ? '<span class="badge warn">Falta aportación</span>' : locked ? '<span class="badge alta">Bloqueada</span>' : r.covered ? '<span class="badge buy">Cubierta</span>' : late ? '<span class="badge alta">Fuera de plazo</span>' : '<span class="badge">En curso</span>';
+    const cls = r.kind === 'aparte' ? 'off' : r.kind === 'prestamo' && r.warn ? 'late' : locked ? 'off' : r.covered ? 'ok' : late ? 'late' : '';
     const dl = r.kind === 'saldo' ? r.dl : r.due, dlTxt = dl ? (r.kind === 'saldo' ? dl.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\./g, '') : shortMonth(dl)) : '—';
     const etaTxt = r.covered ? 'Ya' : r.eta === undefined ? 'Sin ritmo' : r.eta ? shortMonth(r.eta) : '—';
-    const stats = r.covered ? [] : [['Faltan', eur(r.falta)], r.kind === 'saldo' ? ['Necesitas', eur(r.perMonth) + '/mes'] : ['Estimada', locked ? '—' : etaTxt], ['Fecha límite', dlTxt]];
-    if (r.kind === 'saldo' && !r.covered) stats.splice(2, 0, ['Estimada', etaTxt]);
+    let stats, note = '';
+    if (r.kind === 'prestamo') {
+      stats = P ? [['Pendiente', eur(P.pend)], ['Objetivo', eur(P.obj)], ['Intereses ahorrados', P.ahorrados != null ? eur(P.ahorrados) : '—']] : [];
+      note = !P ? '<div class="mnote warn">Sincroniza la hoja de BBVA para ver el préstamo.</div>'
+        : (r.warn ? `<div class="mnote warn">Falta la aportación de ${esc(r.warn.mes)}: el pendiente debería ser ${eur(r.warn.esperado)} o menos y es ${eur(P.pend)}.</div>` : '')
+        + `<div class="mnote">Fin con el plan: ${esc(P.finPlan || '—')} · sin plan: ${esc(P.finSin || '—')}. ${P.proy != null ? `Tras el mes 15 quedarían ${eur(P.proy)}${P.ok == null ? '' : P.ok ? ': objetivo cumplido' : ': no llega al objetivo'}.` : ''}</div>`
+        + (r.rest > 0 ? `<div class="mnote">Reparto: ${eur(r.asg)} de ${eur(r.rest)} en las ${r.nRest} aportaciones que faltan${locked ? ' (bloqueado por el colchón)' : ''}.</div>` : '');
+    } else if (r.kind === 'aparte') {
+      stats = [['Estimado', eur(r.t)], ['Fecha', dlTxt]];
+      note = '<div class="mnote">Fuera del reparto: no recibe dinero del disponible. Estimado y editable.</div>';
+    } else {
+      stats = r.covered ? [] : [['Faltan', eur(r.falta)], r.kind === 'saldo' ? ['Necesitas', eur(r.perMonth) + '/mes'] : ['Estimada', locked ? '—' : etaTxt], ['Fecha límite', dlTxt]];
+      if (r.kind === 'saldo' && !r.covered) stats.splice(2, 0, ['Estimada', etaTxt]);
+      const lack = r.kind === 'saldo' && !r.covered && C.rit != null && r.perMonth > C.rit, ex = C.P && C.P.extra;
+      note = r.kind === 'saldo' && lack ? `<div class="mnote warn">Necesitas ahorrar ${eur(r.perMonth)}/mes y ahorras ≈ ${eur(C.rit)}/mes.${ex ? ` Con las aportaciones al préstamo (${eur(ex)}/mes), probablemente no llegues.` : ' Probablemente no llegues.'}</div>`
+        : locked ? '<div class="mnote">Reparto bloqueado por el colchón.</div>'
+        : r.covered ? '<div class="mnote good">' + (r.kind === 'saldo' ? 'Objetivo alcanzado.' : 'Cubierta con lo que tienes disponible.') + '</div>'
+        : late ? `<div class="mnote warn">${r.kind === 'saldo' ? 'No llegas a tiempo con el ritmo actual.' : `Llegarías ${r.monthsLate} mes${r.monthsLate > 1 ? 'es' : ''} tarde con el ritmo actual.`}</div>`
+        : r.kind === 'saldo' ? '<div class="mnote">Si compras las metas anteriores, este saldo baja.</div>' : '';
+    }
     const st = stats.slice(0, 3).map(([k, v]) => `<div><span class="k">${k}</span><b class="num" title="${esc(v)}">${esc(v)}</b></div>`).join('');
-    const note = locked ? '<div class="mnote">Reparto bloqueado por el colchón.</div>'
-      : r.covered ? '<div class="mnote good">' + (r.kind === 'saldo' ? 'Objetivo alcanzado.' : 'Cubierta con lo que tienes disponible.') + '</div>'
-      : late ? `<div class="mnote warn">${r.kind === 'saldo' ? 'No llegas a tiempo con el ritmo actual.' : `Llegarías ${r.monthsLate} mes${r.monthsLate > 1 ? 'es' : ''} tarde con el ritmo actual.`}</div>`
-      : r.kind === 'saldo' ? '<div class="mnote">Si compras las metas anteriores, este saldo baja.</div>' : '';
     const items = g.items ? `<details style="margin-top:12px"><summary class="muted" style="cursor:pointer">Desglose del presupuesto</summary><div class="list" style="margin-top:6px">${g.items.map(x => `<div class="item"><span class="grow">${esc(x.n)}</span><span class="num">${money(x.v, 0)}</span></div>`).join('')}</div></details>` : '';
     const prio = M.list.filter(x => x.kind !== 'saldo'), pi = prio.indexOf(g);
-    return `<div class="card meta"><div class="row" style="align-items:flex-start;gap:12px"><div class="grow"><h3 style="font-size:20px">${esc(g.name)}</h3>${g.sub ? `<div class="muted" style="font-size:13px;margin-top:2px">${esc(g.sub)}</div>` : ''}</div>${badge}</div>
-      <div class="mhead"><div class="pctbig num ${locked ? 'muted' : ''}" data-count="${Math.round(r.pct)}">${Math.round(r.pct)}%</div><div class="mamt num"><b>${eur(r.shown)}</b><span> / ${eur(r.t)}</span></div></div>
+    const amt = r.kind === 'prestamo' ? `<b>${eur(r.shown)}</b><span> amortizados de ${eur(r.t)}</span>` : r.kind === 'aparte' ? `<b>${eur(0)}</b><span> / ${eur(r.t)}</span>` : `<b>${eur(r.shown)}</b><span> / ${eur(r.t)}</span>`;
+    return `<div class="card meta${sc}"><div class="row" style="align-items:flex-start;gap:12px"><div class="grow"><h3 style="font-size:20px">${esc(g.name)}</h3>${g.sub ? `<div class="muted" style="font-size:13px;margin-top:2px">${esc(g.sub)}</div>` : ''}</div>${badge}</div>
+      <div class="mhead"><div class="pctbig num ${r.kind === 'aparte' || (locked && r.kind === 'prio') ? 'muted' : ''}" data-count="${Math.round(r.pct)}">${Math.round(r.pct)}%</div><div class="mamt num">${amt}</div></div>
       <div class="bar lg gauge ${cls}" role="progressbar" aria-valuenow="${Math.round(r.pct)}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(g.name)}"><i data-w="${r.pct.toFixed(1)}%" style="width:0"></i></div>
       ${st ? `<div class="mstats">${st}</div>` : ''}${note}${items}
       <div class="mact"><button class="ibtn" data-act="metaEdit" data-id="${g.id}" aria-label="Editar" title="Editar">${ic('edit')}</button><span class="sp2"></span>${g.kind !== 'saldo' && pi > 0 ? `<button class="ibtn" data-act="metaUp" data-id="${g.id}" aria-label="Subir prioridad" title="Subir prioridad">${ic('up')}</button>` : ''}${g.kind !== 'saldo' && pi < prio.length - 1 ? `<button class="ibtn" data-act="metaDown" data-id="${g.id}" aria-label="Bajar prioridad" title="Bajar prioridad">${ic('down')}</button>` : ''}<button class="ibtn danger" data-act="metaDel" data-id="${g.id}" aria-label="Quitar" title="Quitar">${ic('trash')}</button></div></div>`;
   }).join('');
-  if (!M.list.length) return head + `<div class="card section" style="text-align:center"><h2 style="justify-content:center">Aún no hay metas</h2><div class="muted" style="margin:6px auto 0;max-width:380px">Defínelas en la pestaña «Metas» de tu hoja «Cockpit Config» y pulsa Sincronizar, o añade una a mano.</div></div>`;
-  return `${head}<div class="grid g2 section">${cards}</div>`;
+  if (!M.list.length) return sum + old + head + `<div class="card section" style="text-align:center"><h2 style="justify-content:center">Aún no hay metas</h2><div class="muted" style="margin:6px auto 0;max-width:380px">Defínelas en la pestaña «Metas» de tu hoja «Cockpit Config» y pulsa Sincronizar, o añade una a mano.</div></div>`;
+  return `${sum}${old}${head}<div class="grid g2 section">${cards}</div>${gastoCard(stale)}`;
 }
 function metasTop(n) {
   const C = metasCalc(); if (C.saldo == null) return '<div class="empty">Carga tu Excel para ver cuánto llevas de cada meta.</div>';
@@ -1592,12 +1751,12 @@ function metaEdit(id) {
   const g = ensureMetas().list.find(x => x.id === id); if (!g) return;
   const f = [{ name: 'name', label: 'Nombre', value: g.name, required: true }];
   if (g.items) g.items.forEach((x, i) => f.push({ name: 'i' + i, label: x.n + ' (€)', value: String(x.v).replace('.', ','), inputmode: 'decimal' }));
-  else f.push({ name: 'target', label: 'Objetivo (€)', value: String(g.target).replace('.', ','), inputmode: 'decimal', required: true });
+  else if (g.kind !== 'prestamo') f.push({ name: 'target', label: 'Objetivo (€)', value: String(g.target).replace('.', ','), inputmode: 'decimal', required: true });
   if (g.kind === 'saldo') f.push({ name: 'deadline', label: 'Fecha límite', type: 'date', value: g.deadline || '' });
   else f.push({ name: 'due', label: 'Fecha límite (opcional)', type: 'month', value: g.due || '' });
   form('Editar meta', f, d => {
     g.name = d.name.trim() || g.name;
-    if (g.items) g.items.forEach((x, i) => { x.v = Math.abs(num(d['i' + i])); }); else g.target = Math.abs(num(d.target)) || g.target;
+    if (g.items) g.items.forEach((x, i) => { x.v = Math.abs(num(d['i' + i])); }); else if (g.kind !== 'prestamo') g.target = Math.abs(num(d.target)) || g.target;
     if (g.kind === 'saldo') g.deadline = d.deadline || ''; else g.due = d.due || '';
     commit();
   }, { text: g.items ? 'El objetivo es la suma del desglose.' : '' });
@@ -1685,17 +1844,41 @@ function addList() {
   form('Nueva lista', [{ name: 'ic', label: 'Icono', type: 'select', options: ['lista', 'música', 'libro', 'viaje', 'idea', 'estrella', 'calendario'] }, { name: 'title', label: 'Título', required: true }],
     d => { S.lists.push({ id: uid(), ic: { lista: 'list', música: 'music', libro: 'book', viaje: 'nav', idea: 'bulb', estrella: 'star', calendario: 'cal' }[d.ic] || 'list', title: d.title.trim(), items: [] }); commit(); });
 }
+async function avisosDlg() {
+  dlg.innerHTML = '<h3>Avisos al móvil</h3><p class="muted">Cargando…</p>'; dlg.showModal();
+  let info; try { info = await bridge('avisosInfo'); } catch (e) { dlg.innerHTML = `<h3>Avisos al móvil</h3><p class="bad">${esc(e.message)}</p><p class="muted">Vuelve a desplegar el puente con el código nuevo (archivo Avisos.gs) y prueba otra vez.</p><div class="dlg-actions"><button type="button" class="btn" data-x>Cerrar</button></div>`; $('[data-x]', dlg).onclick = () => dlg.close(); return; }
+  const paint = i => {
+    dlg.innerHTML = `<h3>Avisos al móvil</h3><p class="muted" style="margin:4px 0 12px">Se envían con ntfy desde tu puente de Google. No llevan importes y salen entre las 8:00 y las 22:00, como mucho 3 al día.</p>
+      <div class="card" style="padding:12px 14px"><div class="muted" style="font-size:13px">Estado</div><b>${i.on ? 'Activados' : 'Desactivados'}</b></div>
+      <ol class="muted" style="padding-left:20px;line-height:1.7"><li>Instala la app <b>ntfy</b> en el móvil.</li><li>Pulsa «+» y suscríbete a este tema:</li></ol>
+      <div class="card" style="padding:12px 14px;word-break:break-all"><code data-t>${esc(i.topic)}</code></div>
+      <div class="dlg-actions" style="flex-wrap:wrap"><button type="button" class="btn sm" data-cp>Copiar tema</button><button type="button" class="btn sm" data-ts>Enviar aviso de prueba</button><button type="button" class="btn sm ${i.on ? '' : 'primary'}" data-on>${i.on ? 'Desactivar' : 'Activar avisos'}</button><button type="button" class="btn" data-x>Cerrar</button></div>`;
+    $('[data-x]', dlg).onclick = () => dlg.close();
+    $('[data-cp]', dlg).onclick = async () => { try { await navigator.clipboard.writeText(i.topic); toast('Tema copiado'); } catch { toast('No se pudo copiar'); } };
+    $('[data-ts]', dlg).onclick = async () => { try { await bridge('avisosTest'); toast('Aviso enviado. Mira el móvil'); } catch (e) { toast(e.message); } };
+    $('[data-on]', dlg).onclick = async () => { try { paint(await bridge(i.on ? 'avisosOff' : 'avisosOn').then(r => ({ ...i, ...r }))); toast(i.on ? 'Avisos desactivados' : 'Avisos activados'); } catch (e) { toast(e.message); } };
+  };
+  paint(info);
+}
 function settings() {
   form('Ajustes', [
     { name: 'name', label: 'Tu nombre', value: S.name },
-    { name: 'theme', label: 'Tema', type: 'select', options: ['auto', 'oscuro', 'claro'], value: { auto: 'auto', dark: 'oscuro', light: 'claro' }[S.theme] }
-  ], d => { S.name = d.name.trim(); S.theme = { auto: 'auto', oscuro: 'dark', claro: 'light' }[d.theme]; commit(); }, {
+    { name: 'theme', label: 'Tema', type: 'select', options: ['auto', 'oscuro', 'claro'], value: { auto: 'auto', dark: 'oscuro', light: 'claro' }[S.theme] },
+    { name: 'bridgeUrl', label: 'Puente de Google · URL (opcional)', value: S.gxCfg?.bridgeUrl || '', placeholder: 'https://script.google.com/macros/s/…/exec', inputmode: 'url' },
+    { name: 'bridgeKey', label: 'Puente de Google · clave', type: 'password', value: S.gxCfg?.bridgeKey || '' }
+  ], d => {
+    S.name = d.name.trim(); S.theme = { auto: 'auto', oscuro: 'dark', claro: 'light' }[d.theme];
+    const url = (d.bridgeUrl || '').trim(), key = (d.bridgeKey || '').trim(), g = S.gxCfg || (S.gxCfg = { clientId: '' }), changed = url !== (g.bridgeUrl || '') || key !== (g.bridgeKey || '');
+    if (url && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) { toast('La URL del puente no es válida'); commit(); return; }
+    g.bridgeUrl = url; g.bridgeKey = key; g.xAt = 0; commit();
+    if (changed && url && key) setTimeout(() => driveSync(), 300);
+  }, {
     text: 'Tus datos viven solo en este dispositivo. Usa <b>Exportar</b> para llevarlos de un dispositivo a otro.'
   });
   const bar = document.createElement('div'); bar.className = 'dlg-actions'; bar.style.justifyContent = 'flex-start'; bar.style.flexWrap = 'wrap';
-  bar.innerHTML = '<button type="button" class="btn sm" data-x1>Exportar copia</button><button type="button" class="btn sm" data-x2>Importar copia</button><button type="button" class="btn sm danger" data-x3>Borrar todo</button>';
+  bar.innerHTML = '<button type="button" class="btn sm" data-x1>Exportar copia</button><button type="button" class="btn sm" data-x2>Importar copia</button><button type="button" class="btn sm danger" data-x3>Borrar todo</button>' + (BR() ? '<button type="button" class="btn sm" data-x4>Avisos al móvil</button>' : '');
   $('form', dlg).appendChild(bar);
-  $('[data-x1]', dlg).onclick = () => saveFile(`cockpit-${dKey(new Date())}.json`, 'application/json', JSON.stringify(S, null, 2));
+  $('[data-x1]', dlg).onclick = () => saveFile(`cockpit-${dKey(new Date())}.json`, 'application/json', JSON.stringify(S, (k, v) => k === 'bridgeKey' ? undefined : v, 2));
   $('[data-x2]', dlg).onclick = () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
     inp.onchange = async () => {
@@ -1704,6 +1887,7 @@ function settings() {
     };
     inp.click();
   };
+  if ($('[data-x4]', dlg)) $('[data-x4]', dlg).onclick = () => { dlg.close(); avisosDlg(); };
   $('[data-x3]', dlg).onclick = () => { dlg.close(); confirmBox('¿Borrar todo?', 'Se eliminarán todos tus datos de este dispositivo. No se puede deshacer.', () => { S = defaults(); commit(); }, 'Borrar todo'); };
 }
 
@@ -1808,7 +1992,7 @@ function handleLaunch() {
 handleLaunch();
 render();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
-window.__cockpit = { parseCapture, capDialog, busy, widgetHTML, weekCard, exSuggest, gymSlot, stateSnap, stateMerge, whatIf, gxRecurring, get S() { return S; }, ui, render, gxView, gxIngest, parseCfg, applyCfg, parseSeg, applySeg };
+window.__cockpit = { parseFin, metasCalc, finStale, bridge, bridgeSync, parseCapture, capDialog, busy, widgetHTML, weekCard, exSuggest, gymSlot, stateSnap, stateMerge, whatIf, gxRecurring, get S() { return S; }, ui, render, gxView, gxIngest, parseCfg, applyCfg, parseSeg, applySeg };
 })();
 </script>
 </body>
