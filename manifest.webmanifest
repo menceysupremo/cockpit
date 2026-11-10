@@ -1,14 +1,14 @@
 {
-  "name": "Cockpit",
-  "short_name": "Cockpit",
+  "name": "Yggdrasil",
+  "short_name": "Yggdrasil",
   "description": "Mi panel personal: finanzas, metas, hábitos e intereses",
   "lang": "es",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0E1011",
-  "theme_color": "#0E1011",
+  "background_color": "#14110F",
+  "theme_color": "#14110F",
   "icons": [
     {
       "src": "icon-192.png",
