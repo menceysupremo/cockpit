@@ -1,0 +1,63 @@
+{
+  "name": "Cockpit",
+  "short_name": "Cockpit",
+  "description": "Mi panel personal: finanzas, metas, hábitos e intereses",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0E1011",
+  "theme_color": "#0E1011",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Captura rápida",
+      "short_name": "Captura",
+      "url": "./index.html?go=capture"
+    },
+    {
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "url": "./index.html?go=agenda"
+    },
+    {
+      "name": "Entrenar",
+      "short_name": "Forja",
+      "url": "./index.html?go=hab"
+    },
+    {
+      "name": "Widget",
+      "short_name": "Widget",
+      "url": "./index.html?w=m"
+    }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
